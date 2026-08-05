@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POWER | dashboard.biv.xyz</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/jpeg" href="https://biv.xyz/biv.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#0c0c0d; --surface:#161617; --ink:#f4f2ec; --muted:#9a9a92;
+    --line:#2a2a2c; --line2:#4b4b4e; --gold:#f2b441; --dim:#5f5f59;
+    --hand:"Caveat", cursive;
+    --mono:"JetBrains Mono", ui-monospace, monospace;
+    --body:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{background:var(--bg); color:var(--ink); font-family:var(--body); line-height:1.7; -webkit-font-smoothing:antialiased; overflow-x:hidden}
+  ::selection{background:var(--gold); color:#000}
+  :focus-visible{outline:2px solid var(--gold); outline-offset:3px; border-radius:3px}
+
+  .wrap{max-width:940px; margin:0 auto; padding:0 28px}
+  .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+
+  header{padding:8vh 0 5vh; border-bottom:1px solid var(--line)}
+  .head-row{display:flex; justify-content:space-between; align-items:flex-start; gap:30px; flex-wrap:wrap}
+  h1{font-family:var(--hand); font-weight:700; font-size:clamp(44px,7.5vw,72px); line-height:.9; letter-spacing:.5px}
+  h1 .gold{color:var(--gold)}
+  h1 .date{font-size:.42em; color:var(--muted); font-weight:600}
+
+  .stat{border:1px solid var(--line); border-radius:14px; background:var(--surface); padding:14px 26px; text-align:center}
+  .stat .lbl{font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); line-height:1.5}
+  .stat .val{font-family:var(--hand); font-weight:700; font-size:40px; line-height:1; margin-top:4px}
+  .stat .val span{color:var(--dim); font-size:25px}
+  .tabs{display:flex; gap:6px; margin-top:12px; padding:5px; border:1px solid var(--line); border-radius:12px; background:var(--surface)}
+  .tab{flex:1; background:none; border:none; cursor:pointer; font-family:var(--mono); font-size:11px; letter-spacing:.08em;
+       text-transform:uppercase; color:var(--muted); padding:9px 14px; border-radius:8px; transition:color .2s, background-color .2s}
+  .tab[aria-selected="true"]{background:var(--bg); color:var(--ink)}
+
+  .meter{display:flex; gap:10px; margin-top:26px; flex-wrap:wrap}
+  .segwrap{text-align:center}
+  .seg{width:72px; height:72px; border:1px solid var(--line2); border-radius:16px; background:var(--surface); cursor:pointer;
+       font-family:var(--hand); font-weight:700; font-size:40px; color:var(--muted);
+       display:flex; align-items:center; justify-content:center;
+       transition:color .22s, border-color .22s, background-color .22s, transform .1s}
+  .seg:hover{border-color:var(--gold); color:var(--ink)}
+  .seg:active{transform:scale(.94)}
+  .seg.on{color:#000; border-color:var(--gold); background:var(--gold)}
+  .segwrap .lab{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); margin-top:8px}
+  .segwrap.on .lab{color:var(--gold)}
+  .hint{font-family:var(--mono); font-size:11px; color:var(--dim); margin-top:18px; letter-spacing:.03em}
+
+  .grid{display:grid; grid-template-columns:repeat(12,1fr); gap:14px; margin-top:5vh}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:22px 24px;
+        transition:transform .42s cubic-bezier(.5,0,.3,1), opacity .32s ease}
+  .card.out{transform:translateX(120%); opacity:0; pointer-events:none}
+  .c4{grid-column:span 4} .c8{grid-column:span 8} .c12{grid-column:span 12}
+  @media(max-width:760px){.c4,.c8{grid-column:span 12}}
+
+  .card-head{display:flex; justify-content:space-between; align-items:baseline; gap:12px}
+  .card h2{font-family:var(--hand); font-weight:700; font-size:32px; line-height:1}
+  .card .note{font-size:13px; color:var(--muted); margin-top:6px; line-height:1.5}
+  .foot{margin-top:18px; padding-top:14px; border-top:1px solid var(--line); display:flex; justify-content:space-between;
+        align-items:center; gap:12px; flex-wrap:wrap; font-family:var(--mono); font-size:12px; color:var(--dim)}
+  .foot a{color:var(--gold); text-decoration:none; border-bottom:1px solid transparent}
+  .foot a:hover{border-color:var(--gold)}
+
+  .taps{display:flex; gap:16px; margin-top:20px}
+  .tapcol{text-align:center}
+  .tapcol .lab{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); margin-top:8px}
+  .tapcol.on .lab{color:var(--gold)}
+  .dot{width:48px; height:48px; border-radius:50%; border:2px solid var(--line2); background:var(--bg); cursor:pointer;
+       display:flex; align-items:center; justify-content:center; padding:0;
+       transition:background-color .18s, border-color .18s, transform .1s}
+  .dot::after{content:""; width:15px; height:15px; border-radius:50%; background:var(--line2); transition:background-color .18s, transform .18s}
+  .dot:hover{border-color:var(--gold)}
+  .dot.on{background:var(--gold); border-color:var(--gold)}
+  .dot.on::after{background:#000; transform:scale(.55)}
+  .dot:active{transform:scale(.92)}
+
+  input, select, textarea{font-family:var(--mono); font-size:14px; background:var(--bg); color:var(--ink);
+       border:1px solid var(--line2); border-radius:10px; padding:12px 14px}
+  input::placeholder, textarea::placeholder{color:var(--dim)}
+  input:focus, select:focus, textarea:focus{outline:none; border-color:var(--gold)}
+  select{appearance:none; cursor:pointer; padding-right:32px;
+       background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+       background-position:calc(100% - 17px) 21px, calc(100% - 12px) 21px; background-size:5px 5px; background-repeat:no-repeat}
+  textarea{resize:none; line-height:1.7; width:100%}
+
+  .btn{font-family:var(--mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; cursor:pointer;
+       background:none; border:1px solid var(--line2); color:var(--muted); padding:9px 14px; border-radius:9px;
+       transition:border-color .2s, color .2s}
+  .btn:hover{border-color:var(--gold); color:var(--gold)}
+  .btn.solid{background:var(--gold); border-color:var(--gold); color:#000; font-weight:500}
+  .btn.solid:hover{filter:brightness(1.08); color:#000}
+  .btn:disabled{background:none; border-color:var(--line); color:var(--dim); cursor:default; filter:none}
+  .btn.on{border-color:var(--gold); color:var(--gold)}
+
+  .row{display:flex; gap:9px; margin-top:18px; flex-wrap:wrap}
+  .row input{flex:1; min-width:180px}
+
+  .pips{display:flex; gap:5px; margin-top:14px}
+  .pip{flex:1; height:5px; border-radius:3px; background:var(--line2); transition:background-color .25s}
+  .pip.on{background:var(--gold)}
+
+  .ideas{list-style:none; margin-top:16px; font-family:var(--mono); font-size:13px; line-height:1.7}
+  .ideas li{display:flex; gap:12px; padding:7px 0; border-top:1px solid var(--line)}
+  .ideas li:first-child{border-top:none}
+  .ideas .n{color:var(--dim)}
+  .empty{margin-top:16px; font-size:14px; color:var(--dim); max-width:42ch}
+
+  .selects{display:flex; gap:9px; margin-top:18px; flex-wrap:wrap}
+  .selects select:first-of-type{flex:1; min-width:170px}
+  .selects select:last-of-type{width:96px}
+
+  .done-strip{margin-top:24px; padding-top:20px; border-top:1px solid var(--line)}
+  .done-list{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
+  .chip{display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--line);
+        border-radius:11px; padding:9px 10px 9px 16px}
+  .chip .nm{font-family:var(--hand); font-weight:700; font-size:24px; color:var(--gold); line-height:1}
+  .chip .mt{font-family:var(--mono); font-size:11px; color:var(--dim)}
+  .chip .undo{font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+        background:none; border:1px solid var(--line2); color:var(--muted); padding:5px 9px; border-radius:7px; cursor:pointer;
+        transition:border-color .2s, color .2s}
+  .chip .undo:hover{border-color:var(--gold); color:var(--gold)}
+
+  .wk{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:12px}
+  .wk th{font-weight:400; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); padding:0 6px 12px; font-size:11px}
+  .wk td{padding:6px}
+  .wk td:first-child{font-family:var(--body); font-size:14px; color:var(--ink); padding-right:18px; white-space:nowrap}
+  .wk .box{display:block; width:26px; height:26px; border-radius:7px; background:var(--line); margin:0 auto}
+  .wk .box.on{background:var(--gold)}
+  .wk .tot{color:var(--dim); text-align:right}
+  .wk .tot.good{color:var(--gold)}
+
+  footer{margin-top:6vh; padding:26px 0 12vh; border-top:1px solid var(--line);
+         font-family:var(--mono); font-size:12px; color:var(--dim);
+         display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap}
+  .hidden{display:none}
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important}
+    .card.out{transform:none}
+  }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+<header>
+  <div class="head-row">
+    <div>
+      <p class="eyebrow">Daily discipline</p>
+      <h1>P<span class="gold">O</span>WER<br><span class="date" id="today-label"></span></h1>
+    </div>
+    <div>
+      <div class="stat">
+        <p class="lbl">Done today</p>
+        <p class="val"><span id="stat-today">0</span><span>/5</span></p>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="tab" data-view="today" role="tab" aria-selected="true">Today</button>
+        <button class="tab" data-view="week" role="tab" aria-selected="false">7 days</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="meter" id="meter" aria-label="POWER completion today"></div>
+  <p class="hint">Tap a letter if you did it somewhere else. Tap again to bring the card back.</p>
+</header>
+
+<div id="view-today">
+  <div class="grid">
+
+    <article class="card c4" data-k="p">
+      <div class="card-head"><h2>Pray</h2><span class="eyebrow">3&times; daily</span></div>
+      <p class="note">Morning, midday, night.</p>
+      <div class="taps" id="pray-taps"></div>
+      <div class="foot"><span><span id="pray-count">0</span> of 3 today</span></div>
+    </article>
+
+    <article class="card c8" data-k="o">
+      <div class="card-head"><h2>Organize</h2><span class="eyebrow">Idea machine</span></div>
+      <p class="note">Ten a day. Seven through ten are the ones worth having.</p>
+      <div class="row">
+        <input id="idea-input" type="text" placeholder="Deterministic schema scoring for Shopify">
+        <button class="btn solid" id="idea-add" type="button">Add</button>
+      </div>
+      <div class="pips" id="idea-pips" aria-hidden="true"></div>
+      <ol class="ideas" id="idea-list"></ol>
+      <p class="empty" id="idea-empty">Nothing yet. The first one is always the obvious one. Write it anyway.</p>
+      <div class="foot">
+        <span><span id="idea-left">10</span> slots left &middot; <span id="idea-week">31</span> this week</span>
+        <button class="btn" id="idea-copy" type="button">Copy ideas</button>
+      </div>
+    </article>
+
+    <article class="card c8" data-k="w">
+      <div class="card-head"><h2>Write</h2><span class="eyebrow" id="timer" style="font-size:16px; letter-spacing:.04em; color:var(--ink)">10:00</span></div>
+      <p class="note">Timer starts on your first keystroke. No pause button.</p>
+      <textarea id="write-box" rows="8" placeholder="Start typing." style="margin-top:18px"></textarea>
+      <div class="foot">
+        <span><span id="word-count">0</span> words</span>
+        <span style="display:flex; gap:8px">
+          <button class="btn" id="write-copy" type="button">Copy text</button>
+          <button class="btn" id="export" type="button">Download .md</button>
+        </span>
+      </div>
+    </article>
+
+    <article class="card c4" data-k="e">
+      <div class="card-head"><h2>Exercise</h2><span class="eyebrow">3&times; weekly</span></div>
+      <p class="note">Tap one per run.</p>
+      <div class="taps" id="run-taps"></div>
+      <div class="foot"><span><span id="run-count">0</span> runs this week</span></div>
+    </article>
+
+    <article class="card c12" data-k="r">
+      <div class="card-head"><h2>Read</h2><span class="eyebrow">One chapter a day</span></div>
+      <p class="note">Marking it read moves you to the next chapter. Override with the dropdowns any time.</p>
+      <div class="selects">
+        <select id="book" aria-label="Book"></select>
+        <select id="chapter" aria-label="Chapter"></select>
+        <button class="btn solid" id="read-done" type="button">Mark read</button>
+      </div>
+      <div class="foot"><span>Up next: <a id="passage-link" href="#" target="_blank" rel="noopener">&nbsp;</a></span></div>
+    </article>
+
+  </div>
+
+  <div class="done-strip hidden" id="done-strip">
+    <p class="eyebrow">Done today</p>
+    <div class="done-list" id="done-list"></div>
+  </div>
+</div>
+
+<div id="view-week" class="hidden">
+  <div class="grid">
+    <article class="card c12">
+      <div class="card-head"><h2>Last 7 days</h2><span class="eyebrow">Denominator, not a checkmark</span></div>
+      <div id="week-grid" style="margin-top:22px; overflow-x:auto"></div>
+      <div class="foot"><span>The real history lives in Obsidian. This is just enough to see a gap forming.</span></div>
+    </article>
+  </div>
+</div>
+
+<footer>
+  <span>dashboard.biv.xyz &middot; capture only. Obsidian stores it, Claude Code reads it.</span>
+  <span>Last synced <span style="color:var(--muted)">never</span></span>
+</footer>
+
+</div>
+
+<script>
+const LETTERS=[
+ {k:'p',L:'P',name:'Pray'},
+ {k:'o',L:'O',name:'Organize'},
+ {k:'w',L:'W',name:'Write'},
+ {k:'e',L:'E',name:'Exercise'},
+ {k:'r',L:'R',name:'Read'}
+];
+
+const BIBLE=[["Genesis",50],["Exodus",40],["Leviticus",27],["Numbers",36],["Deuteronomy",34],["Joshua",24],["Judges",21],["Ruth",4],["1 Samuel",31],["2 Samuel",24],["1 Kings",22],["2 Kings",25],["1 Chronicles",29],["2 Chronicles",36],["Ezra",10],["Nehemiah",13],["Esther",10],["Job",42],["Psalms",150],["Proverbs",31],["Ecclesiastes",12],["Song of Solomon",8],["Isaiah",66],["Jeremiah",52],["Lamentations",5],["Ezekiel",48],["Daniel",12],["Hosea",14],["Joel",3],["Amos",9],["Obadiah",1],["Jonah",4],["Micah",7],["Nahum",3],["Habakkuk",3],["Zephaniah",3],["Haggai",2],["Zechariah",14],["Malachi",4],["Matthew",28],["Mark",16],["Luke",24],["John",21],["Acts",28],["Romans",16],["1 Corinthians",16],["2 Corinthians",13],["Galatians",6],["Ephesians",6],["Philippians",4],["Colossians",4],["1 Thessalonians",5],["2 Thessalonians",3],["1 Timothy",6],["2 Timothy",4],["Titus",3],["Philemon",1],["Hebrews",13],["James",5],["1 Peter",5],["2 Peter",3],["1 John",5],["2 John",1],["3 John",1],["Jude",1],["Revelation",22]];
+
+const KEY='power.v2';
+const DEFAULTS={
+  prayers:0, runs:0, bookIdx:40, chapter:4, ideas:[], writing:'', writeSeconds:0,
+  done:{p:false,o:false,w:false,e:false,r:false},
+  seen:{p:false,o:false,w:false,e:false,r:false},
+  at:{}
+};
+
+const store=(()=>{ let mem={};
+  try{ localStorage.setItem('__t','1'); localStorage.removeItem('__t');
+    return{get:k=>{try{return JSON.parse(localStorage.getItem(k))}catch{return null}},
+           set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+  }catch{ return{get:k=>(k in mem?mem[k]:null), set:(k,v)=>{mem[k]=v}} }
+})();
+
+const saved=store.get(KEY)||{};
+const state={
+  ...DEFAULTS, ...saved,
+  ideas:Array.isArray(saved.ideas)?saved.ideas:[],
+  done:{...DEFAULTS.done, ...(saved.done||{})},
+  seen:{...DEFAULTS.seen, ...(saved.seen||{})},
+  at:{...(saved.at||{})}
+};
+if(!BIBLE[state.bookIdx]) state.bookIdx=40;
+if(!(state.chapter>=1)||state.chapter>BIBLE[state.bookIdx][1]) state.chapter=1;
+
+const save=()=>store.set(KEY,state);
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+const natural={
+  p:()=>state.prayers>=3,
+  o:()=>state.ideas.length>=10,
+  w:()=>state.writeSeconds>=600,
+  e:()=>state.runs>=3,
+  r:()=>false
+};
+
+const stamp=()=>new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+
+function settle(){
+  LETTERS.forEach(({k})=>{
+    const nat=natural[k]();
+    if(nat&&!state.seen[k]){ state.done[k]=true; state.at[k]=stamp() }
+    state.seen[k]=nat;
+  });
+}
+function toggle(k){
+  if(state.done[k]){ state.done[k]=false; state.seen[k]=natural[k]() }
+  else { state.done[k]=true; state.seen[k]=natural[k](); state.at[k]=stamp() }
+  sync();
+}
+
+$('today-label').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+
+function renderMeter(){
+  const m=$('meter');
+  m.innerHTML=LETTERS.map(l=>
+    `<div class="segwrap ${state.done[l.k]?'on':''}">
+       <button class="seg ${state.done[l.k]?'on':''}" data-k="${l.k}" type="button"
+         aria-pressed="${!!state.done[l.k]}" aria-label="${l.name}">${l.L}</button>
+       <p class="lab">${l.name}</p>
+     </div>`).join('');
+  m.querySelectorAll('.seg').forEach(b=>b.addEventListener('click',()=>toggle(b.dataset.k)));
+  $('stat-today').textContent=LETTERS.filter(l=>state.done[l.k]).length;
+}
+
+function taps(el,filled,labels,tap){
+  el.innerHTML='';
+  labels.forEach((lab,i)=>{
+    const col=document.createElement('div');
+    col.className='tapcol'+(i<filled?' on':'');
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='dot'+(i<filled?' on':'');
+    b.setAttribute('aria-label',lab);
+    b.setAttribute('aria-pressed',i<filled);
+    b.addEventListener('click',()=>tap(i<filled?i:i+1));
+    const p=document.createElement('p');
+    p.className='lab'; p.textContent=lab;
+    col.append(b,p); el.appendChild(col);
+  });
+}
+function renderPray(){
+  taps($('pray-taps'),state.prayers,['Morning','Midday','Night'],n=>{state.prayers=n; sync()});
+  $('pray-count').textContent=state.prayers;
+}
+function renderRuns(){
+  taps($('run-taps'),state.runs,['Run 1','Run 2','Run 3'],n=>{state.runs=n; sync()});
+  $('run-count').textContent=state.runs;
+}
+
+function addIdea(){
+  const el=$('idea-input');
+  const v=el.value.trim();
+  if(!v||state.ideas.length>=10) return;
+  state.ideas.push(v);
+  el.value='';
+  sync();
+  if(state.ideas.length<10) el.focus();
+}
+$('idea-add').addEventListener('click',addIdea);
+$('idea-input').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault(); addIdea()} });
+
+function renderIdeas(){
+  const n=state.ideas.length;
+  $('idea-pips').innerHTML=Array.from({length:10},(_,i)=>`<span class="pip ${i<n?'on':''}"></span>`).join('');
+  $('idea-list').innerHTML=state.ideas.map((t,i)=>
+    `<li><span class="n">${String(i+1).padStart(2,'0')}</span><span>${esc(t)}</span></li>`).join('');
+  $('idea-empty').classList.toggle('hidden',n>0);
+  $('idea-left').textContent=10-n;
+  $('idea-week').textContent=31+n;
+  $('idea-add').disabled=n>=10;
+  $('idea-input').disabled=n>=10;
+  $('idea-input').placeholder=n>=10?'Ten. Done for today.':'Deterministic schema scoring for Shopify';
+  $('idea-copy').disabled=n===0;
+}
+
+function flash(btn,label){
+  if(!btn.dataset.label) btn.dataset.label=btn.textContent;
+  btn.textContent=label; btn.classList.add('on');
+  clearTimeout(btn._t);
+  btn._t=setTimeout(()=>{btn.textContent=btn.dataset.label; btn.classList.remove('on')},1400);
+}
+function legacyCopy(text){
+  const ta=document.createElement('textarea');
+  ta.value=text;
+  ta.style.cssText='position:fixed;top:0;left:0;opacity:0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  let ok=false;
+  try{ ok=document.execCommand('copy') }catch{}
+  document.body.removeChild(ta);
+  return ok;
+}
+function copy(text,btn){
+  if(!text||!text.trim()){ flash(btn,'Nothing yet'); return }
+  if(navigator.clipboard&&window.isSecureContext){
+    navigator.clipboard.writeText(text)
+      .then(()=>flash(btn,'Copied'))
+      .catch(()=>flash(btn,legacyCopy(text)?'Copied':'Blocked'));
+  } else {
+    flash(btn,legacyCopy(text)?'Copied':'Blocked');
+  }
+}
+$('idea-copy').addEventListener('click',e=>copy(state.ideas.map((t,i)=>`${i+1}. ${t}`).join('\n'),e.currentTarget));
+$('write-copy').addEventListener('click',e=>copy(state.writing,e.currentTarget));
+
+let ticking=null;
+const box=$('write-box');
+box.addEventListener('input',()=>{
+  state.writing=box.value;
+  if(!ticking&&state.writeSeconds<600){
+    ticking=setInterval(()=>{
+      state.writeSeconds++;
+      if(state.writeSeconds>=600){ clearInterval(ticking); ticking=null; sync(); return }
+      renderTimer(); save();
+    },1000);
+  }
+  $('word-count').textContent=box.value.trim()?box.value.trim().split(/\s+/).length:0;
+  save();
+});
+function renderTimer(){
+  const left=Math.max(0,600-state.writeSeconds);
+  const t=$('timer');
+  t.textContent=`${String(Math.floor(left/60)).padStart(2,'0')}:${String(left%60).padStart(2,'0')}`;
+  t.style.color=left===0?'var(--gold)':'var(--ink)';
+}
+
+function buildBooks(){ $('book').innerHTML=BIBLE.map((b,i)=>`<option value="${i}">${b[0]}</option>`).join('') }
+function buildChapters(){
+  $('chapter').innerHTML=Array.from({length:BIBLE[state.bookIdx][1]},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
+}
+$('book').addEventListener('change',e=>{ state.bookIdx=+e.target.value; state.chapter=1; buildChapters(); sync() });
+$('chapter').addEventListener('change',e=>{ state.chapter=+e.target.value; sync() });
+
+$('read-done').addEventListener('click',()=>{
+  if(state.chapter<BIBLE[state.bookIdx][1]){ state.chapter++ }
+  else { state.bookIdx=(state.bookIdx+1)%BIBLE.length; state.chapter=1; buildChapters() }
+  state.done.r=true; state.at.r=stamp();
+  sync();
+});
+
+function renderRead(){
+  $('book').value=state.bookIdx;
+  $('chapter').value=state.chapter;
+  const ref=`${BIBLE[state.bookIdx][0]} ${state.chapter}`;
+  const a=$('passage-link');
+  a.textContent=ref;
+  a.href='https://www.biblegateway.com/passage/?version=ESV&search='+encodeURIComponent(ref);
+}
+
+function renderCards(){
+  document.querySelectorAll('.card[data-k]').forEach(c=>{
+    const on=state.done[c.dataset.k];
+    if(on){
+      c.classList.add('out');
+      setTimeout(()=>{ if(state.done[c.dataset.k]) c.classList.add('hidden') },420);
+    } else {
+      c.classList.remove('hidden');
+      requestAnimationFrame(()=>c.classList.remove('out'));
+    }
+  });
+  const doneKeys=LETTERS.filter(l=>state.done[l.k]);
+  $('done-strip').classList.toggle('hidden',doneKeys.length===0);
+  $('done-list').innerHTML=doneKeys.map(l=>
+    `<div class="chip"><span class="nm">${l.name}</span><span class="mt">${state.at[l.k]||''}</span>
+     <button class="undo" data-k="${l.k}" type="button">Undo</button></div>`).join('');
+  $('done-list').querySelectorAll('.undo').forEach(b=>b.addEventListener('click',()=>toggle(b.dataset.k)));
+}
+
+$('export').addEventListener('click',()=>{
+  const d=new Date().toISOString().slice(0,10);
+  const md=['---',`date: ${d}`,`pray: ${state.prayers}/3`,`organize: ${state.ideas.length}/10`,
+    `write: ${Math.floor(state.writeSeconds/60)}m`,`exercise: ${state.runs}/3`,
+    `read_next: ${BIBLE[state.bookIdx][0]} ${state.chapter}`,
+    `power: ${LETTERS.filter(l=>state.done[l.k]).map(l=>l.L).join('')||'none'}`,'---','',
+    '## Ideas',...(state.ideas.length?state.ideas.map((t,i)=>`${i+1}. ${t}`):['_none_']),'',
+    '## Ten minutes',state.writing||'_nothing written_',''].join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([md],{type:'text/markdown'}));
+  a.download=`${d}.md`; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+});
+
+const SAMPLE=[
+ {d:'Thu',p:1,o:1,w:1,e:0,r:1},{d:'Fri',p:1,o:0,w:1,e:1,r:1},{d:'Sat',p:0,o:0,w:0,e:1,r:1},
+ {d:'Sun',p:1,o:1,w:1,e:0,r:1},{d:'Mon',p:1,o:1,w:0,e:1,r:1},{d:'Tue',p:1,o:0,w:1,e:0,r:0},
+ {d:'Wed',p:0,o:0,w:0,e:0,r:0}];
+
+function renderWeek(){
+  const rows=LETTERS.map(l=>{
+    const cells=SAMPLE.map(day=>{
+      const on=day.d==='Wed'?state.done[l.k]:day[l.k];
+      return `<td><span class="box ${on?'on':''}"></span></td>`;
+    }).join('');
+    const hits=SAMPLE.reduce((a,day)=>a+(day.d==='Wed'?(state.done[l.k]?1:0):day[l.k]),0);
+    return `<tr><td>${l.name}</td>${cells}<td class="tot ${hits>=6?'good':''}">${hits}/7</td></tr>`;
+  }).join('');
+  $('week-grid').innerHTML=`<table class="wk"><thead><tr><th></th>${
+    SAMPLE.map(d=>`<th>${d.d}</th>`).join('')}<th></th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t===tab));
+    $('view-today').classList.toggle('hidden',tab.dataset.view!=='today');
+    $('view-week').classList.toggle('hidden',tab.dataset.view!=='week');
+  });
+});
+
+function sync(){
+  settle();
+  renderMeter(); renderPray(); renderRuns(); renderIdeas(); renderRead();
+  renderTimer(); renderCards(); renderWeek(); save();
+}
+
+buildBooks(); buildChapters();
+box.value=state.writing;
+$('word-count').textContent=state.writing.trim()?state.writing.trim().split(/\s+/).length:0;
+sync();
+</script>
+</body>
+</html>
