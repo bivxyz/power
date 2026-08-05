@@ -4,7 +4,7 @@ A daily discipline dashboard. Five things, one page, no integrations.
 
 **P**ray · **O**rganize · **W**rite · **E**xercise · **R**ead
 
-Runs at `dashboard.biv.xyz`. Single `index.html`, vanilla JS, no build step, no dependencies except two Google fonts.
+Runs at `dash.biv.xyz`. Single `index.html`, vanilla JS, no build step, no dependencies except two Google fonts.
 
 ---
 
@@ -87,7 +87,7 @@ Cloudflare Pages, static:
 
 - Build command: none
 - Output directory: `/`
-- Custom domain: `dashboard.biv.xyz`
+- Custom domain: `dash.biv.xyz`
 
 ### Lock it down
 
