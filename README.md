@@ -30,11 +30,11 @@ The app never grows a reading view, a search, or an archive. Obsidian already do
 
 **Organize** — the idea machine. Ten slots a day. Input disables at ten. Seven through ten are the ones worth having, which is the whole point of the number.
 
-**Write** — ten minutes. Timer starts on the first keystroke and does not pause. Word count on the way out.
+**Write** — ten minutes. Start and stop the timer explicitly, with word count on the way out.
 
-**Exercise** — three dots, one per run, resets weekly.
+**Exercise** — three run check-ins and three lifting check-ins, cleared together when the week rolls over.
 
-**Read** — book and chapter dropdowns covering all 66 books with correct chapter counts. Marking a chapter read advances to the next one, and rolls to the next book at the end. The reference links out to Bible Gateway (ESV).
+**Read** — book and chapter dropdowns covering all 66 books with correct chapter counts. Marking a chapter read checks it off in a collapsed GitHub-style Bible activity grid, advances to the next chapter, and rolls to the next book at the end.
 
 ### Completion behavior
 
@@ -49,6 +49,8 @@ Completion fires once, on the transition (third prayer, tenth idea, timer hittin
 ## Data
 
 Everything lives in `localStorage` under the key `power.v2`, with an in-memory fallback when storage is unavailable (private windows, sandboxed iframes).
+
+Pray, Organize, Write, and Exercise each have a confirmed Clear action for routine cleanup. Read intentionally keeps its selection because it tracks the next chapter in an ongoing sequence.
 
 Saved state is merged over a defaults object rather than replacing it, so adding fields to the schema won't break existing installs. Bump the key if the shape changes in a way that matters.
 

@@ -12,8 +12,8 @@
 
 <style>
   :root{
-    --bg:#0c0c0d; --surface:#161617; --ink:#f4f2ec; --muted:#9a9a92;
-    --line:#2a2a2c; --line2:#4b4b4e; --gold:#f2b441; --dim:#5f5f59;
+    --bg:#0c0c0d; --surface:#1a1a1c; --control:#232326; --ink:#f4f2ec; --muted:#aaa9a1;
+    --line:#343437; --line2:#626266; --gold:#f2b441; --dim:#777770;
     --hand:"Caveat", cursive;
     --mono:"JetBrains Mono", ui-monospace, monospace;
     --body:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -27,20 +27,16 @@
   .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
 
   header{padding:8vh 0 5vh; border-bottom:1px solid var(--line)}
-  .head-row{display:flex; justify-content:space-between; align-items:flex-start; gap:30px; flex-wrap:wrap}
-  h1{font-family:var(--hand); font-weight:700; font-size:clamp(44px,7.5vw,72px); line-height:.9; letter-spacing:.5px}
+  h1{font-family:var(--hand); font-weight:700; font-size:clamp(44px,7.5vw,72px); line-height:.9; letter-spacing:.5px; white-space:nowrap}
   h1 .gold{color:var(--gold)}
-  h1 .date{font-size:.42em; color:var(--muted); font-weight:600}
+  .date{font-family:var(--hand); font-size:clamp(18px,3vw,30px); line-height:1; color:var(--muted); font-weight:600; margin-top:10px}
 
-  .stat{border:1px solid var(--line); border-radius:14px; background:var(--surface); padding:14px 26px; text-align:center}
-  .stat .lbl{font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); line-height:1.5}
-  .stat .val{font-family:var(--hand); font-weight:700; font-size:40px; line-height:1; margin-top:4px}
-  .stat .val span{color:var(--dim); font-size:25px}
-  .tabs{display:flex; gap:6px; margin-top:12px; padding:5px; border:1px solid var(--line); border-radius:12px; background:var(--surface)}
+  .tabs{display:flex; flex:0 0 auto; gap:6px; margin-top:26px; padding:5px; border:1px solid var(--line); border-radius:12px; background:var(--surface)}
   .tab{flex:1; background:none; border:none; cursor:pointer; font-family:var(--mono); font-size:11px; letter-spacing:.08em;
        text-transform:uppercase; color:var(--muted); padding:9px 14px; border-radius:8px; transition:color .2s, background-color .2s}
   .tab[aria-selected="true"]{background:var(--bg); color:var(--ink)}
 
+  .meter-row{display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap}
   .meter{display:flex; gap:10px; margin-top:26px; flex-wrap:wrap}
   .segwrap{text-align:center}
   .seg{width:72px; height:72px; border:1px solid var(--line2); border-radius:16px; background:var(--surface); cursor:pointer;
@@ -62,6 +58,9 @@
   @media(max-width:760px){.c4,.c8{grid-column:span 12}}
 
   .card-head{display:flex; justify-content:space-between; align-items:baseline; gap:12px}
+  .timer-wrap{display:flex; align-items:center; gap:9px}
+  .timer-button{width:34px; height:34px; display:grid; place-items:center; border-radius:50%}
+  .timer-button svg{width:13px; height:13px; fill:currentColor}
   .card h2{font-family:var(--hand); font-weight:700; font-size:32px; line-height:1}
   .card .note{font-size:13px; color:var(--muted); margin-top:6px; line-height:1.5}
   .foot{margin-top:18px; padding-top:14px; border-top:1px solid var(--line); display:flex; justify-content:space-between;
@@ -73,7 +72,9 @@
   .tapcol{text-align:center}
   .tapcol .lab{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); margin-top:8px}
   .tapcol.on .lab{color:var(--gold)}
-  .dot{width:48px; height:48px; border-radius:50%; border:2px solid var(--line2); background:var(--bg); cursor:pointer;
+  .exercise-set+.exercise-set{margin-top:22px; padding-top:18px; border-top:1px solid var(--line)}
+  .exercise-set .taps{margin-top:12px}
+  .dot{width:48px; height:48px; border-radius:50%; border:2px solid var(--line2); background:var(--control); cursor:pointer;
        display:flex; align-items:center; justify-content:center; padding:0;
        transition:background-color .18s, border-color .18s, transform .1s}
   .dot::after{content:""; width:15px; height:15px; border-radius:50%; background:var(--line2); transition:background-color .18s, transform .18s}
@@ -82,7 +83,7 @@
   .dot.on::after{background:#000; transform:scale(.55)}
   .dot:active{transform:scale(.92)}
 
-  input, select, textarea{font-family:var(--mono); font-size:14px; background:var(--bg); color:var(--ink);
+  input, select, textarea{font-family:var(--mono); font-size:14px; background:var(--control); color:var(--ink);
        border:1px solid var(--line2); border-radius:10px; padding:12px 14px}
   input::placeholder, textarea::placeholder{color:var(--dim)}
   input:focus, select:focus, textarea:focus{outline:none; border-color:var(--gold)}
@@ -99,9 +100,12 @@
   .btn.solid:hover{filter:brightness(1.08); color:#000}
   .btn:disabled{background:none; border-color:var(--line); color:var(--dim); cursor:default; filter:none}
   .btn.on{border-color:var(--gold); color:var(--gold)}
+  .btn.danger:hover{border-color:#d88d83; color:#f0aaa0}
+  .btn.timer-button{padding:0; line-height:0}
 
   .row{display:flex; gap:9px; margin-top:18px; flex-wrap:wrap}
   .row input{flex:1; min-width:180px}
+  .button-group{display:flex; gap:8px; flex-wrap:wrap}
 
   .pips{display:flex; gap:5px; margin-top:14px}
   .pip{flex:1; height:5px; border-radius:3px; background:var(--line2); transition:background-color .25s}
@@ -116,6 +120,21 @@
   .selects{display:flex; gap:9px; margin-top:18px; flex-wrap:wrap}
   .selects select:first-of-type{flex:1; min-width:170px}
   .selects select:last-of-type{width:96px}
+
+  .bible-details{margin-top:18px; border-top:1px solid var(--line); padding-top:14px}
+  .bible-details summary{width:max-content; cursor:pointer; list-style:none; user-select:none}
+  .bible-details summary::-webkit-details-marker{display:none}
+  .bible-details summary::before{content:"+"; color:var(--gold); margin-right:8px}
+  .bible-details[open] summary::before{content:"−"}
+  .bible-tracker{margin-top:16px; overflow-x:hidden; padding-bottom:8px}
+  .bible-group+.bible-group{margin-top:22px}
+  .bible-group-title{padding-bottom:8px; border-bottom:1px solid var(--line); margin-bottom:10px}
+  .bible-row{display:flex; align-items:flex-start; gap:10px; min-height:19px; margin-bottom:3px}
+  .bible-name{width:128px; flex:0 0 128px; text-align:right; font-family:var(--mono); font-size:10px; color:var(--muted); white-space:nowrap}
+  .chapter-grid{display:flex; flex:1; flex-wrap:wrap; gap:3px; min-width:0; max-width:620px; padding-top:4px}
+  .chapter-box{display:block; width:11px; height:11px; flex:0 0 11px; border-radius:3px; background:var(--line); border:1px solid transparent}
+  .chapter-box.read{background:var(--gold); border-color:#ffd88a}
+  .chapter-box.next{border-color:var(--muted)}
 
   .done-strip{margin-top:24px; padding-top:20px; border-top:1px solid var(--line)}
   .done-list{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
@@ -145,6 +164,15 @@
     *{transition:none !important}
     .card.out{transform:none}
   }
+  @media(max-width:480px){
+    .wrap{padding:0 18px}
+    header{padding-top:5vh}
+    h1{font-size:clamp(52px,22vw,72px)}
+    .meter{gap:7px; justify-content:space-between}
+    .seg{width:54px; height:54px; border-radius:13px; font-size:32px}
+    .card{padding:20px}
+    .bible-name{width:92px; flex-basis:92px}
+  }
 </style>
 </head>
 
@@ -152,24 +180,17 @@
 <div class="wrap">
 
 <header>
-  <div class="head-row">
-    <div>
-      <p class="eyebrow">Daily discipline</p>
-      <h1>P<span class="gold">O</span>WER<br><span class="date" id="today-label"></span></h1>
-    </div>
-    <div>
-      <div class="stat">
-        <p class="lbl">Done today</p>
-        <p class="val"><span id="stat-today">0</span><span>/5</span></p>
-      </div>
-      <div class="tabs" role="tablist">
-        <button class="tab" data-view="today" role="tab" aria-selected="true">Today</button>
-        <button class="tab" data-view="week" role="tab" aria-selected="false">7 days</button>
-      </div>
+  <p class="eyebrow">Daily discipline</p>
+  <h1>P<span class="gold">O</span>WER</h1>
+  <p class="date" id="today-label"></p>
+
+  <div class="meter-row">
+    <div class="meter" id="meter" aria-label="POWER completion today"></div>
+    <div class="tabs" role="tablist">
+      <button class="tab" data-view="today" role="tab" aria-selected="true">Today</button>
+      <button class="tab" data-view="week" role="tab" aria-selected="false">7 days</button>
     </div>
   </div>
-
-  <div class="meter" id="meter" aria-label="POWER completion today"></div>
   <p class="hint">Tap a letter if you did it somewhere else. Tap again to bring the card back.</p>
 </header>
 
@@ -179,7 +200,7 @@
     <article class="card c4" data-k="p">
       <div class="card-head"><h2>Pray</h2><span class="eyebrow">3&times; daily</span></div>
       <div class="taps" id="pray-taps"></div>
-      <div class="foot"><span><span id="pray-count">0</span> of 3 today</span></div>
+      <div class="foot"><span><span id="pray-count">0</span> of 3 today</span><button class="btn danger" data-clear="p" type="button">Clear</button></div>
     </article>
 
     <article class="card c8" data-k="o">
@@ -193,16 +214,17 @@
       <p class="empty" id="idea-empty">Nothing yet. The first one is always the obvious one. Write it anyway.</p>
       <div class="foot">
         <span><span id="idea-left">10</span> slots left &middot; <span id="idea-week">31</span> this week</span>
-        <button class="btn" id="idea-copy" type="button">Copy ideas</button>
+        <span class="button-group"><button class="btn danger" data-clear="o" type="button">Clear</button><button class="btn" id="idea-copy" type="button">Copy ideas</button></span>
       </div>
     </article>
 
     <article class="card c8" data-k="w">
-      <div class="card-head"><h2>Write</h2><span class="eyebrow" id="timer" style="font-size:16px; letter-spacing:.04em; color:var(--ink)">10:00</span></div>
+      <div class="card-head"><h2>Write</h2><span class="timer-wrap"><span class="eyebrow" id="timer" style="font-size:16px; letter-spacing:.04em; color:var(--ink)">10:00</span><button class="btn solid timer-button" id="timer-toggle" type="button" aria-label="Start timer" title="Start timer"></button></span></div>
       <textarea id="write-box" rows="8" placeholder="Start typing." style="margin-top:18px"></textarea>
       <div class="foot">
         <span><span id="word-count">0</span> words</span>
-        <span style="display:flex; gap:8px">
+        <span class="button-group">
+          <button class="btn danger" data-clear="w" type="button">Clear</button>
           <button class="btn" id="write-copy" type="button">Copy text</button>
           <button class="btn" id="export" type="button">Download .md</button>
         </span>
@@ -210,9 +232,10 @@
     </article>
 
     <article class="card c4" data-k="e">
-      <div class="card-head"><h2>Exercise</h2><span class="eyebrow">3&times; weekly</span></div>
-      <div class="taps" id="run-taps"></div>
-      <div class="foot"><span><span id="run-count">0</span> runs this week</span></div>
+      <div class="card-head"><h2>Exercise</h2><span class="eyebrow">3+3 weekly</span></div>
+      <div class="exercise-set"><p class="eyebrow">Run</p><div class="taps" id="run-taps"></div></div>
+      <div class="exercise-set"><p class="eyebrow">Lift</p><div class="taps" id="lift-taps"></div></div>
+      <div class="foot"><span><span id="run-count">0</span> runs &middot; <span id="lift-count">0</span> lifts</span><button class="btn danger" data-clear="e" type="button">Clear</button></div>
     </article>
 
     <article class="card c12" data-k="r">
@@ -222,6 +245,10 @@
         <select id="chapter" aria-label="Chapter"></select>
         <button class="btn solid" id="read-done" type="button">Mark read</button>
       </div>
+      <details class="bible-details">
+        <summary class="eyebrow">Bible reading activity</summary>
+        <div class="bible-tracker" id="bible-tracker"></div>
+      </details>
     </article>
 
   </div>
@@ -262,7 +289,7 @@ const BIBLE=[["Genesis",50],["Exodus",40],["Leviticus",27],["Numbers",36],["Deut
 
 const KEY='power.v2';
 const DEFAULTS={
-  prayers:0, runs:0, bookIdx:40, chapter:4, ideas:[], writing:'', writeSeconds:0,
+  prayers:0, runs:0, lifts:0, bookIdx:40, chapter:4, readChapters:[], ideas:[], writing:'', writeSeconds:0,
   done:{p:false,o:false,w:false,e:false,r:false},
   seen:{p:false,o:false,w:false,e:false,r:false},
   at:{}
@@ -279,6 +306,7 @@ const saved=store.get(KEY)||{};
 const state={
   ...DEFAULTS, ...saved,
   ideas:Array.isArray(saved.ideas)?saved.ideas:[],
+  readChapters:Array.isArray(saved.readChapters)?saved.readChapters:[],
   done:{...DEFAULTS.done, ...(saved.done||{})},
   seen:{...DEFAULTS.seen, ...(saved.seen||{})},
   at:{...(saved.at||{})}
@@ -294,7 +322,7 @@ const natural={
   p:()=>state.prayers>=3,
   o:()=>state.ideas.length>=10,
   w:()=>state.writeSeconds>=600,
-  e:()=>state.runs>=3,
+  e:()=>state.runs>=3&&state.lifts>=3,
   r:()=>false
 };
 
@@ -324,7 +352,6 @@ function renderMeter(){
        <p class="lab">${l.name}</p>
      </div>`).join('');
   m.querySelectorAll('.seg').forEach(b=>b.addEventListener('click',()=>toggle(b.dataset.k)));
-  $('stat-today').textContent=LETTERS.filter(l=>state.done[l.k]).length;
 }
 
 function taps(el,filled,labels,tap){
@@ -349,7 +376,9 @@ function renderPray(){
 }
 function renderRuns(){
   taps($('run-taps'),state.runs,['Run 1','Run 2','Run 3'],n=>{state.runs=n; sync()});
+  taps($('lift-taps'),state.lifts,['Lift 1','Lift 2','Lift 3'],n=>{state.lifts=n; sync()});
   $('run-count').textContent=state.runs;
+  $('lift-count').textContent=state.lifts;
 }
 
 function addIdea(){
@@ -411,22 +440,56 @@ let ticking=null;
 const box=$('write-box');
 box.addEventListener('input',()=>{
   state.writing=box.value;
-  if(!ticking&&state.writeSeconds<600){
-    ticking=setInterval(()=>{
-      state.writeSeconds++;
-      if(state.writeSeconds>=600){ clearInterval(ticking); ticking=null; sync(); return }
-      renderTimer(); save();
-    },1000);
-  }
   $('word-count').textContent=box.value.trim()?box.value.trim().split(/\s+/).length:0;
   save();
 });
+function stopTimer(){
+  if(ticking){ clearInterval(ticking); ticking=null }
+  renderTimer();
+}
+function startTimer(){
+  if(ticking||state.writeSeconds>=600) return;
+  ticking=setInterval(()=>{
+    state.writeSeconds++;
+    if(state.writeSeconds>=600){ stopTimer(); sync(); return }
+    renderTimer(); save();
+  },1000);
+  renderTimer();
+}
+$('timer-toggle').addEventListener('click',()=>ticking?stopTimer():startTimer());
 function renderTimer(){
   const left=Math.max(0,600-state.writeSeconds);
   const t=$('timer');
   t.textContent=`${String(Math.floor(left/60)).padStart(2,'0')}:${String(left%60).padStart(2,'0')}`;
   t.style.color=left===0?'var(--gold)':'var(--ink)';
+  const btn=$('timer-toggle');
+  const label=ticking?'Pause timer':'Start timer';
+  btn.setAttribute('aria-label',label); btn.title=label;
+  btn.innerHTML=ticking
+    ?'<svg viewBox="0 0 12 14" aria-hidden="true"><rect x="1" width="3.5" height="14"/><rect x="7.5" width="3.5" height="14"/></svg>'
+    :'<svg class="play-icon" viewBox="0 0 12 14" aria-hidden="true"><path d="M1 0l11 7L1 14z"/></svg>';
+  btn.disabled=left===0;
 }
+
+const CLEAR_PROMPTS={
+  p:"Clear today's prayer taps?",
+  o:"Clear today's ideas?",
+  w:"Clear today's writing and timer?",
+  e:"Clear this week's run and lifting check-ins?"
+};
+function clearModule(k){
+  if(!confirm(CLEAR_PROMPTS[k])) return;
+  if(k==='p') state.prayers=0;
+  if(k==='o') state.ideas=[];
+  if(k==='w'){
+    stopTimer(); state.writing=''; state.writeSeconds=0; box.value='';
+    $('word-count').textContent='0';
+  }
+  if(k==='e'){ state.runs=0; state.lifts=0 }
+  state.done[k]=false; state.seen[k]=false; delete state.at[k];
+  sync();
+}
+document.querySelectorAll('[data-clear]').forEach(btn=>btn.addEventListener('click',()=>clearModule(btn.dataset.clear)));
 
 function buildBooks(){ $('book').innerHTML=BIBLE.map((b,i)=>`<option value="${i}">${b[0]}</option>`).join('') }
 function buildChapters(){
@@ -436,6 +499,8 @@ $('book').addEventListener('change',e=>{ state.bookIdx=+e.target.value; state.ch
 $('chapter').addEventListener('change',e=>{ state.chapter=+e.target.value; sync() });
 
 $('read-done').addEventListener('click',()=>{
+  const readKey=`${state.bookIdx}:${state.chapter}`;
+  if(!state.readChapters.includes(readKey)) state.readChapters.push(readKey);
   if(state.chapter<BIBLE[state.bookIdx][1]){ state.chapter++ }
   else { state.bookIdx=(state.bookIdx+1)%BIBLE.length; state.chapter=1; buildChapters() }
   state.done.r=true; state.at.r=stamp();
@@ -445,10 +510,17 @@ $('read-done').addEventListener('click',()=>{
 function renderRead(){
   $('book').value=state.bookIdx;
   $('chapter').value=state.chapter;
-  const ref=`${BIBLE[state.bookIdx][0]} ${state.chapter}`;
-  const a=$('passage-link');
-  a.textContent=ref;
-  a.href='https://www.biblegateway.com/passage/?version=ESV&search='+encodeURIComponent(ref);
+  const read=new Set(state.readChapters);
+  const groups=[['Old Testament',0,39],['New Testament',39,BIBLE.length]];
+  $('bible-tracker').innerHTML=groups.map(([name,start,end])=>
+    `<section class="bible-group"><p class="eyebrow bible-group-title">${name}</p>${BIBLE.slice(start,end).map((book,offset)=>{
+      const bi=start+offset;
+      return `<div class="bible-row"><span class="bible-name">${book[0]}</span><span class="chapter-grid">${Array.from({length:book[1]},(_,i)=>{
+        const chapter=i+1, key=`${bi}:${chapter}`;
+        const cls=read.has(key)?' read':bi===state.bookIdx&&chapter===state.chapter?' next':'';
+        return `<span class="chapter-box${cls}" title="${book[0]} ${chapter}${read.has(key)?' — read':''}"></span>`;
+      }).join('')}</span></div>`;
+    }).join('')}</section>`).join('');
 }
 
 function renderCards(){
@@ -473,7 +545,7 @@ function renderCards(){
 $('export').addEventListener('click',()=>{
   const d=new Date().toISOString().slice(0,10);
   const md=['---',`date: ${d}`,`pray: ${state.prayers}/3`,`organize: ${state.ideas.length}/10`,
-    `write: ${Math.floor(state.writeSeconds/60)}m`,`exercise: ${state.runs}/3`,
+    `write: ${Math.floor(state.writeSeconds/60)}m`,`runs: ${state.runs}/3`,`lifts: ${state.lifts}/3`,
     `read_next: ${BIBLE[state.bookIdx][0]} ${state.chapter}`,
     `power: ${LETTERS.filter(l=>state.done[l.k]).map(l=>l.L).join('')||'none'}`,'---','',
     '## Ideas',...(state.ideas.length?state.ideas.map((t,i)=>`${i+1}. ${t}`):['_none_']),'',
