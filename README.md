@@ -34,11 +34,11 @@ The app never grows a reading view, a search, or an archive. Obsidian already do
 
 **Exercise** — three run check-ins and three lifting check-ins, cleared together when the week rolls over.
 
-**Read** — book and chapter dropdowns covering all 66 books with correct chapter counts. Marking a chapter read checks it off in a collapsed GitHub-style Bible activity grid, advances to the next chapter, and rolls to the next book at the end.
+**Read** — book and chapter dropdowns covering all 66 books with correct chapter counts. Marking a chapter read checks it off in the Bible tab, advances to the next chapter, and rolls to the next book at the end. The card stays available so multiple chapters can be logged in one sitting. Chapter squares in the Bible tab can also be toggled directly for manual entry or correction without moving the current reading position.
 
 ### Completion behavior
 
-Finishing a section slides its card off to the right and drops it out of the grid, so the page shrinks to what's left. Completed items collect in a **Done today** strip with a timestamp and an Undo button.
+Finishing a section mutes its card without disabling it. Completed cards remain visible and usable, while the gold POWER letters keep the day's completion state easy to scan.
 
 The **POWER letters** in the header are buttons. Tap one to mark a discipline done if it happened away from the dashboard. Tap it again to bring the card back.
 
@@ -111,7 +111,6 @@ Keyboard focus is visible, `prefers-reduced-motion` is respected, and the layout
 
 Ordered by whether it survives the "will this actually get used" test.
 
-- [ ] Real seven-day history (the week view currently runs on sample data)
 - [ ] Daily rollover at midnight, weekly rollover for the run count
 - [ ] KV queue so the phone can write and the Mac can pull, with a visible last-synced timestamp
 - [ ] Outbound sends counter, once there's a version of it that isn't just another number to look at

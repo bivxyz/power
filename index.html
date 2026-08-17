@@ -52,8 +52,9 @@
 
   .grid{display:grid; grid-template-columns:repeat(12,1fr); gap:14px; margin-top:5vh}
   .card{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:22px 24px;
-        transition:transform .42s cubic-bezier(.5,0,.3,1), opacity .32s ease}
-  .card.out{transform:translateX(120%); opacity:0; pointer-events:none}
+        transition:opacity .22s ease, background-color .22s ease, border-color .22s ease}
+  .card.complete{background:#151516; border-color:#29292b; opacity:.62}
+  .card.complete:hover,.card.complete:focus-within{opacity:.86}
   .c4{grid-column:span 4} .c8{grid-column:span 8} .c12{grid-column:span 12}
   @media(max-width:760px){.c4,.c8{grid-column:span 12}}
 
@@ -121,40 +122,18 @@
   .selects select:first-of-type{flex:1; min-width:170px}
   .selects select:last-of-type{width:96px}
 
-  .bible-details{margin-top:18px; border-top:1px solid var(--line); padding-top:14px}
-  .bible-details summary{width:max-content; cursor:pointer; list-style:none; user-select:none}
-  .bible-details summary::-webkit-details-marker{display:none}
-  .bible-details summary::before{content:"+"; color:var(--gold); margin-right:8px}
-  .bible-details[open] summary::before{content:"−"}
-  .bible-tracker{margin-top:16px; overflow-x:hidden; padding-bottom:8px}
+  .bible-tracker{margin-top:22px; overflow-x:hidden; padding-bottom:8px}
   .bible-group+.bible-group{margin-top:22px}
   .bible-group-title{padding-bottom:8px; border-bottom:1px solid var(--line); margin-bottom:10px}
   .bible-row{display:flex; align-items:flex-start; gap:10px; min-height:19px; margin-bottom:3px}
   .bible-name{width:128px; flex:0 0 128px; text-align:right; font-family:var(--mono); font-size:10px; color:var(--muted); white-space:nowrap}
   .chapter-grid{display:flex; flex:1; flex-wrap:wrap; gap:3px; min-width:0; max-width:620px; padding-top:4px}
-  .chapter-box{display:block; width:11px; height:11px; flex:0 0 11px; border-radius:3px; background:var(--line); border:1px solid transparent}
+  .chapter-box{display:block; width:11px; height:11px; flex:0 0 11px; padding:0; appearance:none; cursor:pointer;
+        border-radius:3px; background:var(--line); border:1px solid transparent; transition:background-color .16s, border-color .16s, transform .1s}
+  .chapter-box:hover{border-color:var(--gold)}
+  .chapter-box:active{transform:scale(.84)}
   .chapter-box.read{background:var(--gold); border-color:#ffd88a}
   .chapter-box.next{border-color:var(--muted)}
-
-  .done-strip{margin-top:24px; padding-top:20px; border-top:1px solid var(--line)}
-  .done-list{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
-  .chip{display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--line);
-        border-radius:11px; padding:9px 10px 9px 16px}
-  .chip .nm{font-family:var(--hand); font-weight:700; font-size:24px; color:var(--gold); line-height:1}
-  .chip .mt{font-family:var(--mono); font-size:11px; color:var(--dim)}
-  .chip .undo{font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase;
-        background:none; border:1px solid var(--line2); color:var(--muted); padding:5px 9px; border-radius:7px; cursor:pointer;
-        transition:border-color .2s, color .2s}
-  .chip .undo:hover{border-color:var(--gold); color:var(--gold)}
-
-  .wk{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:12px}
-  .wk th{font-weight:400; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); padding:0 6px 12px; font-size:11px}
-  .wk td{padding:6px}
-  .wk td:first-child{font-family:var(--body); font-size:14px; color:var(--ink); padding-right:18px; white-space:nowrap}
-  .wk .box{display:block; width:26px; height:26px; border-radius:7px; background:var(--line); margin:0 auto}
-  .wk .box.on{background:var(--gold)}
-  .wk .tot{color:var(--dim); text-align:right}
-  .wk .tot.good{color:var(--gold)}
 
   footer{margin-top:6vh; padding:26px 0 12vh; border-top:1px solid var(--line);
          font-family:var(--mono); font-size:12px; color:var(--dim);
@@ -162,7 +141,6 @@
   .hidden{display:none}
   @media (prefers-reduced-motion:reduce){
     *{transition:none !important}
-    .card.out{transform:none}
   }
   @media(max-width:480px){
     .wrap{padding:0 18px}
@@ -188,7 +166,7 @@
     <div class="meter" id="meter" aria-label="POWER completion today"></div>
     <div class="tabs" role="tablist">
       <button class="tab" data-view="today" role="tab" aria-selected="true">Today</button>
-      <button class="tab" data-view="week" role="tab" aria-selected="false">7 days</button>
+      <button class="tab" data-view="bible" role="tab" aria-selected="false">Bible</button>
     </div>
   </div>
   <p class="hint">Tap a letter if you did it somewhere else. Tap again to bring the card back.</p>
@@ -245,26 +223,16 @@
         <select id="chapter" aria-label="Chapter"></select>
         <button class="btn solid" id="read-done" type="button">Mark read</button>
       </div>
-      <details class="bible-details">
-        <summary class="eyebrow">Bible reading activity</summary>
-        <div class="bible-tracker" id="bible-tracker"></div>
-      </details>
     </article>
 
   </div>
-
-  <div class="done-strip hidden" id="done-strip">
-    <p class="eyebrow">Done today</p>
-    <div class="done-list" id="done-list"></div>
-  </div>
 </div>
 
-<div id="view-week" class="hidden">
+<div id="view-bible" class="hidden">
   <div class="grid">
     <article class="card c12">
-      <div class="card-head"><h2>Last 7 days</h2><span class="eyebrow">Denominator, not a checkmark</span></div>
-      <div id="week-grid" style="margin-top:22px; overflow-x:auto"></div>
-      <div class="foot"><span>The real history lives in Obsidian. This is just enough to see a gap forming.</span></div>
+      <div class="card-head"><h2>Bible reading</h2><span class="eyebrow">66 books &middot; 1,189 chapters</span></div>
+      <div class="bible-tracker" id="bible-tracker"></div>
     </article>
   </div>
 </div>
@@ -503,7 +471,8 @@ $('read-done').addEventListener('click',()=>{
   if(!state.readChapters.includes(readKey)) state.readChapters.push(readKey);
   if(state.chapter<BIBLE[state.bookIdx][1]){ state.chapter++ }
   else { state.bookIdx=(state.bookIdx+1)%BIBLE.length; state.chapter=1; buildChapters() }
-  state.done.r=true; state.at.r=stamp();
+  if(!state.done.r) state.at.r=stamp();
+  state.done.r=true;
   sync();
 });
 
@@ -518,28 +487,24 @@ function renderRead(){
       return `<div class="bible-row"><span class="bible-name">${book[0]}</span><span class="chapter-grid">${Array.from({length:book[1]},(_,i)=>{
         const chapter=i+1, key=`${bi}:${chapter}`;
         const cls=read.has(key)?' read':bi===state.bookIdx&&chapter===state.chapter?' next':'';
-        return `<span class="chapter-box${cls}" title="${book[0]} ${chapter}${read.has(key)?' — read':''}"></span>`;
+        const label=`${book[0]} ${chapter}`;
+        return `<button class="chapter-box${cls}" type="button" data-read-key="${key}" title="${label}${read.has(key)?' — read':''}"
+          aria-label="${read.has(key)?'Mark unread':'Mark read'}: ${label}" aria-pressed="${read.has(key)}"></button>`;
       }).join('')}</span></div>`;
     }).join('')}</section>`).join('');
+  $('bible-tracker').querySelectorAll('[data-read-key]').forEach(box=>box.addEventListener('click',()=>{
+    const key=box.dataset.readKey;
+    const index=state.readChapters.indexOf(key);
+    if(index>=0) state.readChapters.splice(index,1);
+    else state.readChapters.push(key);
+    renderRead(); save();
+  }));
 }
 
 function renderCards(){
   document.querySelectorAll('.card[data-k]').forEach(c=>{
-    const on=state.done[c.dataset.k];
-    if(on){
-      c.classList.add('out');
-      setTimeout(()=>{ if(state.done[c.dataset.k]) c.classList.add('hidden') },420);
-    } else {
-      c.classList.remove('hidden');
-      requestAnimationFrame(()=>c.classList.remove('out'));
-    }
+    c.classList.toggle('complete',!!state.done[c.dataset.k]);
   });
-  const doneKeys=LETTERS.filter(l=>state.done[l.k]);
-  $('done-strip').classList.toggle('hidden',doneKeys.length===0);
-  $('done-list').innerHTML=doneKeys.map(l=>
-    `<div class="chip"><span class="nm">${l.name}</span><span class="mt">${state.at[l.k]||''}</span>
-     <button class="undo" data-k="${l.k}" type="button">Undo</button></div>`).join('');
-  $('done-list').querySelectorAll('.undo').forEach(b=>b.addEventListener('click',()=>toggle(b.dataset.k)));
 }
 
 $('export').addEventListener('click',()=>{
@@ -556,36 +521,18 @@ $('export').addEventListener('click',()=>{
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 });
 
-const SAMPLE=[
- {d:'Thu',p:1,o:1,w:1,e:0,r:1},{d:'Fri',p:1,o:0,w:1,e:1,r:1},{d:'Sat',p:0,o:0,w:0,e:1,r:1},
- {d:'Sun',p:1,o:1,w:1,e:0,r:1},{d:'Mon',p:1,o:1,w:0,e:1,r:1},{d:'Tue',p:1,o:0,w:1,e:0,r:0},
- {d:'Wed',p:0,o:0,w:0,e:0,r:0}];
-
-function renderWeek(){
-  const rows=LETTERS.map(l=>{
-    const cells=SAMPLE.map(day=>{
-      const on=day.d==='Wed'?state.done[l.k]:day[l.k];
-      return `<td><span class="box ${on?'on':''}"></span></td>`;
-    }).join('');
-    const hits=SAMPLE.reduce((a,day)=>a+(day.d==='Wed'?(state.done[l.k]?1:0):day[l.k]),0);
-    return `<tr><td>${l.name}</td>${cells}<td class="tot ${hits>=6?'good':''}">${hits}/7</td></tr>`;
-  }).join('');
-  $('week-grid').innerHTML=`<table class="wk"><thead><tr><th></th>${
-    SAMPLE.map(d=>`<th>${d.d}</th>`).join('')}<th></th></tr></thead><tbody>${rows}</tbody></table>`;
-}
-
 document.querySelectorAll('.tab').forEach(tab=>{
   tab.addEventListener('click',()=>{
     document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t===tab));
     $('view-today').classList.toggle('hidden',tab.dataset.view!=='today');
-    $('view-week').classList.toggle('hidden',tab.dataset.view!=='week');
+    $('view-bible').classList.toggle('hidden',tab.dataset.view!=='bible');
   });
 });
 
 function sync(){
   settle();
   renderMeter(); renderPray(); renderRuns(); renderIdeas(); renderRead();
-  renderTimer(); renderCards(); renderWeek(); save();
+  renderTimer(); renderCards(); save();
 }
 
 buildBooks(); buildChapters();
