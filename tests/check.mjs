@@ -17,5 +17,7 @@ if (!bibleLiteral) throw new Error('Bible data not found');
 const bible = JSON.parse(bibleLiteral);
 const chapterCount = bible.reduce((sum, [, chapters]) => sum + chapters, 0);
 if (bible.length !== 66 || chapterCount !== 1189) throw new Error(`Bible data mismatch: ${bible.length} books, ${chapterCount} chapters`);
+if (!script.includes("e:()=>false") || !script.includes("if(added&&!state.done.e)")) throw new Error('Daily Exercise completion behavior is missing');
+if (!script.includes("const SYNC_FIELDS=['prayers','runs','lifts','bookIdx','chapter','ideas','writing','writeSeconds','day'")) throw new Error('Daily rollover key is not synchronized');
 
-console.log('Inline syntax, DOM references, and Bible data are valid.');
+console.log('Inline syntax, DOM references, Bible data, and daily completion behavior are valid.');

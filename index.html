@@ -278,8 +278,13 @@ const BIBLE=[["Genesis",50],["Exodus",40],["Leviticus",27],["Numbers",36],["Deut
 
 const KEY='power.v2';
 const SYNC_KEY='power.sync.v1';
+const localDay=()=>{
+  const d=new Date(), pad=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+};
 const DEFAULTS={
   prayers:0, runs:0, lifts:0, bookIdx:40, chapter:4, readChapters:[], ideas:[], writing:'', writeSeconds:0,
+  day:null,
   done:{p:false,o:false,w:false,e:false,r:false},
   seen:{p:false,o:false,w:false,e:false,r:false},
   at:{}
@@ -303,11 +308,28 @@ const state={
 };
 if(!BIBLE[state.bookIdx]) state.bookIdx=40;
 if(!(state.chapter>=1)||state.chapter>BIBLE[state.bookIdx][1]) state.chapter=1;
+function rollDailyState(){
+  const today=localDay();
+  if(!state.day){state.day=today; return false}
+  if(state.day===today) return false;
+  state.day=today;
+  state.done={...DEFAULTS.done};
+  state.at={};
+  state.seen={
+    p:state.prayers>=3,
+    o:state.ideas.length>=10,
+    w:state.writeSeconds>=600,
+    e:false,
+    r:false
+  };
+  return true;
+}
+rollDailyState();
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 
-const SYNC_FIELDS=['prayers','runs','lifts','bookIdx','chapter','ideas','writing','writeSeconds','done','seen','at'];
+const SYNC_FIELDS=['prayers','runs','lifts','bookIdx','chapter','ideas','writing','writeSeconds','day','done','seen','at'];
 let syncInfo=store.get(SYNC_KEY)||{};
 let cloudRevision=Number.isInteger(syncInfo.revision)?syncInfo.revision:0;
 let cloudBaseline=syncInfo.baseline||null;
@@ -383,6 +405,7 @@ function applyCloud(cloud,preserveLocal){
     Object.entries(localChanges.chapterChanges).forEach(([key,read])=>read?chapters.add(key):chapters.delete(key));
     state.readChapters=[...chapters];
   }
+  rollDailyState();
   store.set(KEY,state); persistSyncInfo(cloud.updatedAt); buildChapters(); renderDashboard();
   setSyncStatus('synced',relativeSyncTime(cloud.updatedAt));
 }
@@ -444,7 +467,7 @@ const natural={
   p:()=>state.prayers>=3,
   o:()=>state.ideas.length>=10,
   w:()=>state.writeSeconds>=600,
-  e:()=>state.runs>=3&&state.lifts>=3,
+  e:()=>false,
   r:()=>false
 };
 
@@ -497,8 +520,14 @@ function renderPray(){
   $('pray-count').textContent=state.prayers;
 }
 function renderRuns(){
-  taps($('run-taps'),state.runs,['Run 1','Run 2','Run 3'],n=>{state.runs=n; sync()});
-  taps($('lift-taps'),state.lifts,['Lift 1','Lift 2','Lift 3'],n=>{state.lifts=n; sync()});
+  const update=(kind,n)=>{
+    const added=n>state[kind];
+    state[kind]=n;
+    if(added&&!state.done.e){state.done.e=true; state.at.e=stamp()}
+    sync();
+  };
+  taps($('run-taps'),state.runs,['Run 1','Run 2','Run 3'],n=>update('runs',n));
+  taps($('lift-taps'),state.lifts,['Lift 1','Lift 2','Lift 3'],n=>update('lifts',n));
   $('run-count').textContent=state.runs;
   $('lift-count').textContent=state.lifts;
 }
@@ -710,6 +739,12 @@ box.value=state.writing;
 $('word-count').textContent=state.writing.trim()?state.writing.trim().split(/\s+/).length:0;
 sync();
 startCloudSync();
+setInterval(()=>{
+  if(rollDailyState()){renderDashboard(); save()}
+},60000);
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden&&rollDailyState()){renderDashboard(); save()}
+});
 </script>
 </body>
 </html>

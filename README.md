@@ -32,7 +32,7 @@ The app never grows a reading view, a search, or an archive. Obsidian already do
 
 **Write** — ten minutes. Start and stop the timer explicitly, with word count on the way out.
 
-**Exercise** — three run check-ins and three lifting check-ins, cleared together when the week rolls over.
+**Exercise** — three run check-ins and three lifting check-ins, cleared together when the week rolls over. Adding any run or lift marks Exercise complete for the current day; the 3+3 counts remain weekly totals.
 
 **Read** — book and chapter dropdowns covering all 66 books with correct chapter counts. Marking a chapter read checks it off in the Bible tab, advances to the next chapter, and rolls to the next book at the end. The card stays available so multiple chapters can be logged in one sitting. Chapter squares in the Bible tab can also be toggled directly for manual entry or correction without moving the current reading position.
 
@@ -43,6 +43,8 @@ Finishing a section mutes its card without disabling it. Completed cards remain 
 The **POWER letters** in the header are buttons. Tap one to mark a discipline done if it happened away from the dashboard. Tap it again to bring the card back.
 
 Completion fires once, on the transition (third prayer, tenth idea, timer hitting zero). Undo sets it back to false and it stays false — it will not silently re-complete itself because the underlying count is still at three.
+
+At the first load after local midnight, all five POWER completion letters reset for the new day. Entered module data and weekly exercise totals are preserved. An open dashboard also checks for a date change when it becomes visible and once per minute.
 
 ---
 
