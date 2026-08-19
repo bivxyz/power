@@ -135,6 +135,18 @@
   .chapter-box.read{background:var(--gold); border-color:#ffd88a}
   .chapter-box.next{border-color:var(--muted)}
 
+  .sync-banner{margin-top:22px; padding:14px 16px; border:1px solid var(--gold); border-radius:11px;
+    background:#211b11; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap}
+  .sync-banner p{font-family:var(--mono); font-size:12px; color:var(--ink)}
+  .sync-actions{display:flex; gap:8px; flex-wrap:wrap}
+  .sync-status{display:flex; align-items:center; gap:8px}
+  .sync-dot{width:7px; height:7px; border-radius:50%; background:var(--dim); flex:0 0 auto}
+  .sync-status[data-state="synced"] .sync-dot{background:var(--gold)}
+  .sync-status[data-state="syncing"] .sync-dot{background:var(--muted); animation:pulse 1s infinite alternate}
+  .sync-status[data-state="offline"] .sync-dot,.sync-status[data-state="error"] .sync-dot{background:#d88d83}
+  .sync-init{font-size:10px; padding:7px 10px}
+  @keyframes pulse{to{opacity:.35}}
+
   footer{margin-top:6vh; padding:26px 0 12vh; border-top:1px solid var(--line);
          font-family:var(--mono); font-size:12px; color:var(--dim);
          display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap}
@@ -171,6 +183,14 @@
   </div>
   <p class="hint">Tap a letter if you did it somewhere else. Tap again to bring the card back.</p>
 </header>
+
+<div class="sync-banner hidden" id="sync-conflict" role="alert">
+  <p id="sync-conflict-text">A newer cloud edit conflicts with this device.</p>
+  <div class="sync-actions">
+    <button class="btn solid" id="sync-keep" type="button">Keep this device</button>
+    <button class="btn" id="sync-cloud" type="button">Use cloud</button>
+  </div>
+</div>
 
 <div id="view-today">
   <div class="grid">
@@ -239,7 +259,8 @@
 
 <footer>
   <span>dash.biv.xyz</span>
-  <span>Last synced <span style="color:var(--muted)">never</span></span>
+  <span class="sync-status" id="sync-status" data-state="local"><span class="sync-dot" aria-hidden="true"></span><span id="sync-label">Local only</span></span>
+  <button class="btn sync-init hidden" id="sync-init" type="button">Use this device to initialize sync</button>
 </footer>
 
 </div>
@@ -256,6 +277,7 @@ const LETTERS=[
 const BIBLE=[["Genesis",50],["Exodus",40],["Leviticus",27],["Numbers",36],["Deuteronomy",34],["Joshua",24],["Judges",21],["Ruth",4],["1 Samuel",31],["2 Samuel",24],["1 Kings",22],["2 Kings",25],["1 Chronicles",29],["2 Chronicles",36],["Ezra",10],["Nehemiah",13],["Esther",10],["Job",42],["Psalms",150],["Proverbs",31],["Ecclesiastes",12],["Song of Solomon",8],["Isaiah",66],["Jeremiah",52],["Lamentations",5],["Ezekiel",48],["Daniel",12],["Hosea",14],["Joel",3],["Amos",9],["Obadiah",1],["Jonah",4],["Micah",7],["Nahum",3],["Habakkuk",3],["Zephaniah",3],["Haggai",2],["Zechariah",14],["Malachi",4],["Matthew",28],["Mark",16],["Luke",24],["John",21],["Acts",28],["Romans",16],["1 Corinthians",16],["2 Corinthians",13],["Galatians",6],["Ephesians",6],["Philippians",4],["Colossians",4],["1 Thessalonians",5],["2 Thessalonians",3],["1 Timothy",6],["2 Timothy",4],["Titus",3],["Philemon",1],["Hebrews",13],["James",5],["1 Peter",5],["2 Peter",3],["1 John",5],["2 John",1],["3 John",1],["Jude",1],["Revelation",22]];
 
 const KEY='power.v2';
+const SYNC_KEY='power.sync.v1';
 const DEFAULTS={
   prayers:0, runs:0, lifts:0, bookIdx:40, chapter:4, readChapters:[], ideas:[], writing:'', writeSeconds:0,
   done:{p:false,o:false,w:false,e:false,r:false},
@@ -282,9 +304,141 @@ const state={
 if(!BIBLE[state.bookIdx]) state.bookIdx=40;
 if(!(state.chapter>=1)||state.chapter>BIBLE[state.bookIdx][1]) state.chapter=1;
 
-const save=()=>store.set(KEY,state);
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+const SYNC_FIELDS=['prayers','runs','lifts','bookIdx','chapter','ideas','writing','writeSeconds','done','seen','at'];
+let syncInfo=store.get(SYNC_KEY)||{};
+let cloudRevision=Number.isInteger(syncInfo.revision)?syncInfo.revision:0;
+let cloudBaseline=syncInfo.baseline||null;
+let cloudInitialized=!!syncInfo.initialized;
+let cloudTimer=null, cloudFirstQueued=0, cloudInFlight=false, pendingConflict=null;
+
+function clone(value){ return JSON.parse(JSON.stringify(value)) }
+function stateSnapshot(){
+  const out={};
+  SYNC_FIELDS.forEach(key=>out[key]=clone(state[key]));
+  out.readChapters=[...new Set(state.readChapters)];
+  return out;
+}
+function persistSyncInfo(updatedAt=syncInfo.updatedAt){
+  syncInfo={revision:cloudRevision, initialized:cloudInitialized, updatedAt, baseline:cloudBaseline};
+  store.set(SYNC_KEY,syncInfo);
+}
+function setSyncStatus(kind,label){
+  $('sync-status').dataset.state=kind;
+  $('sync-label').textContent=label;
+}
+function relativeSyncTime(value){
+  if(!value) return 'Synced';
+  const seconds=Math.max(0,Math.round((Date.now()-new Date(value).getTime())/1000));
+  if(seconds<10) return 'Synced just now';
+  if(seconds<60) return `Synced ${seconds}s ago`;
+  return `Synced ${Math.floor(seconds/60)}m ago`;
+}
+function diffFromBaseline(){
+  if(!cloudBaseline) return {changes:{},chapterChanges:{}};
+  const changes={};
+  SYNC_FIELDS.forEach(key=>{
+    if(JSON.stringify(state[key])!==JSON.stringify(cloudBaseline[key])) changes[key]=clone(state[key]);
+  });
+  const local=new Set(state.readChapters), base=new Set(cloudBaseline.readChapters||[]), chapterChanges={};
+  local.forEach(key=>{if(!base.has(key)) chapterChanges[key]=true});
+  base.forEach(key=>{if(!local.has(key)) chapterChanges[key]=false});
+  return {changes,chapterChanges};
+}
+function hasPatch(patch){ return Object.keys(patch.changes).length||Object.keys(patch.chapterChanges).length }
+function save(){
+  store.set(KEY,state);
+  if(cloudInitialized) scheduleCloudSync();
+}
+function scheduleCloudSync(){
+  if(!cloudInitialized||pendingConflict) return;
+  if(!navigator.onLine){setSyncStatus('offline','Offline · changes queued'); return}
+  if(!cloudFirstQueued) cloudFirstQueued=Date.now();
+  clearTimeout(cloudTimer);
+  const delay=Math.max(0,Math.min(1500,10000-(Date.now()-cloudFirstQueued)));
+  cloudTimer=setTimeout(()=>{cloudTimer=null; cloudFirstQueued=0; pushCloud()},delay);
+}
+function requestId(){
+  return self.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+async function apiSync(method,body){
+  const response=await fetch('/api/sync',{method,headers:body?{'content-type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
+  let data={};
+  try{data=await response.json()}catch{}
+  if(!response.ok){const error=new Error(data.error||`Sync failed (${response.status})`); error.status=response.status; error.data=data; throw error}
+  return data;
+}
+function applyCloud(cloud,preserveLocal){
+  const localChanges=preserveLocal&&cloudBaseline?diffFromBaseline():{changes:{},chapterChanges:{}};
+  SYNC_FIELDS.forEach(key=>{if(key in cloud.state) state[key]=clone(cloud.state[key])});
+  state.readChapters=Array.isArray(cloud.state.readChapters)?[...new Set(cloud.state.readChapters)]:[];
+  cloudBaseline=clone(cloud.state);
+  cloudRevision=cloud.revision;
+  cloudInitialized=cloud.initialized;
+  if(preserveLocal){
+    Object.assign(state,localChanges.changes);
+    const chapters=new Set(state.readChapters);
+    Object.entries(localChanges.chapterChanges).forEach(([key,read])=>read?chapters.add(key):chapters.delete(key));
+    state.readChapters=[...chapters];
+  }
+  store.set(KEY,state); persistSyncInfo(cloud.updatedAt); buildChapters(); renderDashboard();
+  setSyncStatus('synced',relativeSyncTime(cloud.updatedAt));
+}
+async function pushCloud(force=false){
+  if(cloudInFlight||pendingConflict||!cloudInitialized) return;
+  const patch=diffFromBaseline();
+  if(!hasPatch(patch)){setSyncStatus('synced',relativeSyncTime(syncInfo.updatedAt)); return}
+  if(!navigator.onLine){setSyncStatus('offline','Offline · changes queued'); return}
+  cloudInFlight=true; setSyncStatus('syncing','Syncing…');
+  try{
+    const result=await apiSync('PATCH',{requestId:requestId(),baseRevision:cloudRevision,...patch,force});
+    applyCloud(result,true);
+    if(hasPatch(diffFromBaseline())) scheduleCloudSync();
+  }catch(error){
+    if(error.status===409&&error.data.current){
+      const longConflict=(error.data.conflicts||[]).some(key=>key==='field:writing'||key==='field:ideas');
+      if(longConflict){
+        pendingConflict={cloud:error.data.current};
+        $('sync-conflict').classList.remove('hidden');
+        $('sync-conflict-text').textContent='Writing or ideas changed on another device. Choose which version to keep.';
+        setSyncStatus('error','Sync conflict');
+      }else{
+        applyCloud(error.data.current,true);
+        cloudInFlight=false;
+        return pushCloud(true);
+      }
+    }else setSyncStatus(navigator.onLine?'error':'offline',navigator.onLine?'Sync unavailable · changes queued':'Offline · changes queued');
+  }finally{cloudInFlight=false}
+}
+async function initializeCloud(){
+  if(cloudInFlight) return;
+  cloudInFlight=true; $('sync-init').disabled=true; setSyncStatus('syncing','Initializing…');
+  const snapshot=stateSnapshot(), changes={...snapshot}; delete changes.readChapters;
+  const chapterChanges=Object.fromEntries(snapshot.readChapters.map(key=>[key,true]));
+  try{
+    const result=await apiSync('PATCH',{requestId:requestId(),baseRevision:0,initialize:true,changes,chapterChanges});
+    applyCloud(result,false); $('sync-init').classList.add('hidden');
+  }catch(error){
+    setSyncStatus('error',error.status===401?'Sign in through Cloudflare Access':'Initialization failed · try again');
+  }finally{cloudInFlight=false; $('sync-init').disabled=false}
+}
+async function startCloudSync(){
+  setSyncStatus(navigator.onLine?'syncing':'offline',navigator.onLine?'Checking cloud…':'Offline · local copy ready');
+  if(!navigator.onLine) return;
+  try{
+    const cloud=await apiSync('GET');
+    if(!cloud.initialized){
+      cloudInitialized=false; cloudBaseline=null; persistSyncInfo();
+      $('sync-init').classList.remove('hidden'); setSyncStatus('local','Cloud sync not initialized'); return;
+    }
+    $('sync-init').classList.add('hidden'); applyCloud(cloud,!!cloudBaseline);
+    if(hasPatch(diffFromBaseline())) scheduleCloudSync();
+  }catch(error){
+    setSyncStatus(error.status===401?'error':'offline',error.status===401?'Sign in through Cloudflare Access':'Cloud unavailable · using local copy');
+  }
+}
 
 const natural={
   p:()=>state.prayers>=3,
@@ -521,6 +675,20 @@ $('export').addEventListener('click',()=>{
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 });
 
+$('sync-init').addEventListener('click',initializeCloud);
+$('sync-keep').addEventListener('click',()=>{
+  if(!pendingConflict) return;
+  const cloud=pendingConflict.cloud; pendingConflict=null;
+  $('sync-conflict').classList.add('hidden'); applyCloud(cloud,true); pushCloud(true);
+});
+$('sync-cloud').addEventListener('click',()=>{
+  if(!pendingConflict) return;
+  const cloud=pendingConflict.cloud; pendingConflict=null;
+  $('sync-conflict').classList.add('hidden'); applyCloud(cloud,false);
+});
+window.addEventListener('online',()=>{setSyncStatus('syncing','Back online · syncing…'); startCloudSync()});
+window.addEventListener('offline',()=>setSyncStatus('offline','Offline · changes queued'));
+
 document.querySelectorAll('.tab').forEach(tab=>{
   tab.addEventListener('click',()=>{
     document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t===tab));
@@ -529,16 +697,19 @@ document.querySelectorAll('.tab').forEach(tab=>{
   });
 });
 
-function sync(){
-  settle();
+function renderDashboard(){
   renderMeter(); renderPray(); renderRuns(); renderIdeas(); renderRead();
-  renderTimer(); renderCards(); save();
+  renderTimer(); renderCards();
+}
+function sync(){
+  settle(); renderDashboard(); save();
 }
 
 buildBooks(); buildChapters();
 box.value=state.writing;
 $('word-count').textContent=state.writing.trim()?state.writing.trim().split(/\s+/).length:0;
 sync();
+startCloudSync();
 </script>
 </body>
 </html>

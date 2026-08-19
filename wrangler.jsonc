@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "power",
+  "pages_build_output_dir": ".",
+  "compatibility_date": "2026-08-19",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "power-sync",
+      "database_id": "50c3d55b-1d06-42af-af50-298fea7804da",
+      "preview_database_id": "DB"
+    }
+  ]
+}

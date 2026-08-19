@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "scripts": {
+    "dev": "wrangler pages dev .",
+    "check": "node tests/check.mjs && node --check functions/api/sync.js"
+  },
+  "devDependencies": {
+    "wrangler": "^4.124.0"
+  }
+}

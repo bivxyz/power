@@ -1,10 +1,10 @@
 # POWER
 
-A daily discipline dashboard. Five things, one page, no integrations.
+A local-first daily discipline dashboard with private cross-device sync.
 
 **P**ray · **O**rganize · **W**rite · **E**xercise · **R**ead
 
-Runs at `dash.biv.xyz`. Single `index.html`, vanilla JS, no build step, no dependencies except two Google fonts.
+Runs at `dash.biv.xyz`. The interface is a single vanilla-JavaScript page; a Cloudflare Pages Function and D1 provide sync.
 
 ---
 
@@ -46,15 +46,17 @@ Completion fires once, on the transition (third prayer, tenth idea, timer hittin
 
 ---
 
-## Data
+## Data and sync
 
-Everything lives in `localStorage` under the key `power.v2`, with an in-memory fallback when storage is unavailable (private windows, sandboxed iframes).
+The app writes immediately to `localStorage` under `power.v2`, with an in-memory fallback when storage is unavailable. That local copy renders first and remains usable offline. The same-origin `/api/sync` Pages Function then exchanges field-level changes with D1; queued edits replay when the browser comes back online.
+
+Dashboard fields and Bible chapters have independent server revisions, so edits to different items merge without replacing the whole state. Repeated requests are idempotent. If writing or ideas changed on two devices from the same base revision, the app asks whether to keep this device or use the cloud copy.
+
+The first deployment starts with an empty D1 database. On the desktop holding the authoritative `power.v2` state, select **Use this device to initialize sync** once. Other devices then adopt that cloud state after passing Cloudflare Access.
 
 Pray, Organize, Write, and Exercise each have a confirmed Clear action for routine cleanup. Read intentionally keeps its selection because it tracks the next chapter in an ongoing sequence.
 
 Saved state is merged over a defaults object rather than replacing it, so adding fields to the schema won't break existing installs. Bump the key if the shape changes in a way that matters.
-
-Nothing leaves the browser. There is no backend.
 
 ### Export
 
@@ -85,23 +87,34 @@ There are also copy buttons on Organize and Write for a faster paste. Both paths
 
 ## Deploy
 
-Cloudflare Pages, static:
+Cloudflare Pages:
 
 - Build command: none
 - Output directory: `/`
 - Custom domain: `dash.biv.xyz`
+- Pages Function binding: D1 database `power-sync` as `DB`
+
+Create/apply the database and run locally with:
+
+```sh
+npm install
+npx wrangler d1 migrations apply power-sync --remote
+npm run dev
+```
+
+`wrangler.jsonc` is the Pages project configuration source of truth. The migration is in `migrations/0001_sync.sql`.
 
 ### Lock it down
 
 The page carries `noindex`, which keeps it out of search results and out of nothing else. It holds prayer counts, unedited writing, and raw ideas.
 
-Put Cloudflare Access in front of it: Zero Trust → Access → Applications → self-hosted → allow policy on one email address. One-time PIN, no code to write.
+Put Cloudflare Access in front of the entire hostname, including `/api/sync`: Zero Trust → Access → Applications → self-hosted → allow policy on one email address. Protect the production custom domain and any Pages preview domain you intend to use; the function rejects requests that do not carry the Access assertion.
 
 ---
 
 ## Stack
 
-Plain HTML, CSS, and JavaScript in one file. Caveat and JetBrains Mono from Google Fonts. Design tokens match [biv.xyz](https://biv.xyz).
+Plain HTML, CSS, and JavaScript on the client, with a small Pages Function and D1 database. Caveat and JetBrains Mono come from Google Fonts. Design tokens match [biv.xyz](https://biv.xyz).
 
 Keyboard focus is visible, `prefers-reduced-motion` is respected, and the layout collapses to one column under 760px.
 
@@ -112,7 +125,6 @@ Keyboard focus is visible, `prefers-reduced-motion` is respected, and the layout
 Ordered by whether it survives the "will this actually get used" test.
 
 - [ ] Daily rollover at midnight, weekly rollover for the run count
-- [ ] KV queue so the phone can write and the Mac can pull, with a visible last-synced timestamp
 - [ ] Outbound sends counter, once there's a version of it that isn't just another number to look at
 
 ### Not doing
