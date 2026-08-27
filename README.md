@@ -30,7 +30,7 @@ The app never grows a reading view, a search, or an archive. Obsidian already do
 
 **Organize** — the idea machine. Ten slots a day. Input disables at ten. Seven through ten are the ones worth having, which is the whole point of the number.
 
-**Write** — ten minutes. Start and stop the timer explicitly, with word count on the way out.
+**Write** — ten minutes. Typing starts the timer automatically, while play/pause remains available. Save a thought as a timestamped draft to clear the writing box and continue it later from any synced device.
 
 **Exercise** — three run check-ins and three lifting check-ins, cleared together when the week rolls over. Adding any run or lift marks Exercise complete for the current day; the 3+3 counts remain weekly totals.
 
@@ -50,7 +50,7 @@ At the first load after local midnight, all five POWER completion letters reset 
 
 ## Data and sync
 
-The app writes immediately to `localStorage` under `power.v2`, with an in-memory fallback when storage is unavailable. That local copy renders first and remains usable offline. The same-origin `/api/sync` Pages Function then exchanges field-level changes with D1; queued edits replay when the browser comes back online.
+The app writes immediately to `localStorage` under `power.v2`, with an in-memory fallback when storage is unavailable. That local copy renders first and remains usable offline. The same-origin `/api/sync` Pages Function then exchanges field-level changes, Bible chapters, and independently keyed writing drafts with D1; queued edits replay when the browser comes back online.
 
 Dashboard fields and Bible chapters have independent server revisions, so edits to different items merge without replacing the whole state. Repeated requests are idempotent. If writing or ideas changed on two devices from the same base revision, the app asks whether to keep this device or use the cloud copy.
 

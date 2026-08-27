@@ -20,4 +20,7 @@ if (bible.length !== 66 || chapterCount !== 1189) throw new Error(`Bible data mi
 if (!script.includes("e:()=>false") || !script.includes("if(added&&!state.done.e)")) throw new Error('Daily Exercise completion behavior is missing');
 if (!script.includes("const SYNC_FIELDS=['prayers','runs','lifts','bookIdx','chapter','ideas','writing','writeSeconds','day'")) throw new Error('Daily rollover key is not synchronized');
 
-console.log('Inline syntax, DOM references, Bible data, and daily completion behavior are valid.');
+if (!script.includes("timerManuallyPaused") || !script.includes("e.inputType?e.inputType.startsWith('insert')")) throw new Error('Automatic writing timer behavior is missing');
+if (!script.includes('draftChanges') || !script.includes('function saveDraft()') || !script.includes('function continueDraft(id)')) throw new Error('Draft lifecycle or synchronization behavior is missing');
+if (!html.includes('id="draft-save"') || !html.includes('id="draft-list"')) throw new Error('Draft controls are missing');
+console.log('Inline syntax, DOM references, Bible data, daily completion, automatic timer, and drafts are valid.');
