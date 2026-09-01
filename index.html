@@ -37,6 +37,8 @@
   .tab[aria-selected="true"]{background:var(--bg); color:var(--ink)}
 
   .meter-row{display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap}
+  .day-actions{display:flex; align-items:flex-end; gap:9px; flex-wrap:wrap}
+  .day-actions .btn{margin-bottom:1px; white-space:nowrap}
   .meter{display:flex; gap:10px; margin-top:26px; flex-wrap:wrap}
   .segwrap{text-align:center}
   .seg{width:72px; height:72px; border:1px solid var(--line2); border-radius:16px; background:var(--surface); cursor:pointer;
@@ -134,6 +136,17 @@
   .selects select:first-of-type{flex:1; min-width:170px}
   .selects select:last-of-type{width:96px}
 
+  .meditation{margin-top:22px; padding-top:18px; border-top:1px solid var(--line)}
+  .meditation-form{display:grid; grid-template-columns:minmax(170px,1fr) 96px minmax(110px,.65fr) auto; gap:9px; margin-top:12px}
+  .meditation-form input{min-width:0; width:100%}
+  .meditation-status{min-height:1.7em; margin-top:8px; font-family:var(--mono); font-size:11px; color:var(--dim)}
+  .meditation-status.error{color:#f0aaa0}
+  .meditation-verse{margin-top:14px; padding:17px 18px; border:1px solid var(--line2); border-radius:11px; background:var(--control)}
+  .meditation-reference{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap}
+  .meditation-text{margin-top:9px; font-family:var(--hand); font-size:25px; line-height:1.35; color:var(--ink)}
+  .meditation-actions{margin-top:12px; display:flex; justify-content:flex-end}
+  @media(max-width:640px){.meditation-form{grid-template-columns:1fr 84px}.meditation-form .verse-range{grid-column:1/-1}.meditation-form .btn{grid-column:1/-1}}
+
   .bible-tracker{margin-top:22px; overflow-x:hidden; padding-bottom:8px}
   .bible-group+.bible-group{margin-top:22px}
   .bible-group-title{padding-bottom:8px; border-bottom:1px solid var(--line); margin-bottom:10px}
@@ -188,9 +201,12 @@
 
   <div class="meter-row">
     <div class="meter" id="meter" aria-label="POWER completion today"></div>
-    <div class="tabs" role="tablist">
-      <button class="tab" data-view="today" role="tab" aria-selected="true">Today</button>
-      <button class="tab" data-view="bible" role="tab" aria-selected="false">Bible</button>
+    <div class="day-actions">
+      <div class="tabs" role="tablist">
+        <button class="tab" data-view="today" role="tab" aria-selected="true">Today</button>
+        <button class="tab" data-view="bible" role="tab" aria-selected="false">Bible</button>
+      </div>
+      <button class="btn danger" id="clear-day" type="button">Clear day</button>
     </div>
   </div>
   <p class="hint">Tap a letter if you did it somewhere else. Tap again to bring the card back.</p>
@@ -261,6 +277,21 @@
         <select id="chapter" aria-label="Chapter"></select>
         <button class="btn solid" id="read-done" type="button">Mark read</button>
       </div>
+      <section class="meditation" aria-labelledby="meditation-title">
+        <p class="eyebrow" id="meditation-title">Verse to meditate on</p>
+        <div class="meditation-form">
+          <select id="meditation-book" aria-label="Meditation verse book"></select>
+          <input id="meditation-chapter" type="number" min="1" inputmode="numeric" aria-label="Meditation verse chapter" placeholder="Chapter">
+          <input class="verse-range" id="meditation-range" type="text" inputmode="numeric" aria-label="Meditation verse or range" placeholder="Verse, e.g. 16 or 28-30">
+          <button class="btn solid" id="meditation-find" type="button">Find verse</button>
+        </div>
+        <p class="meditation-status" id="meditation-status" role="status" aria-live="polite"></p>
+        <div class="meditation-verse hidden" id="meditation-verse">
+          <div class="meditation-reference"><strong id="meditation-reference"></strong><span class="eyebrow">WEB</span></div>
+          <p class="meditation-text" id="meditation-text"></p>
+          <div class="meditation-actions"><button class="btn danger" id="meditation-clear" type="button">Clear verse</button></div>
+        </div>
+      </section>
     </article>
 
   </div>
@@ -301,7 +332,7 @@ const localDay=()=>{
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 };
 const DEFAULTS={
-  prayers:0, runs:0, lifts:0, bookIdx:40, chapter:4, readChapters:[], drafts:[], ideas:[], writing:'', writeSeconds:0,
+  prayers:0, runs:0, lifts:0, bookIdx:40, chapter:4, readChapters:[], drafts:[], ideas:[], writing:'', writeSeconds:0, meditationVerse:null,
   day:null,
   done:{p:false,o:false,w:false,e:false,r:false},
   seen:{p:false,o:false,w:false,e:false,r:false},
@@ -348,7 +379,7 @@ rollDailyState();
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 
-const SYNC_FIELDS=['prayers','runs','lifts','bookIdx','chapter','ideas','writing','writeSeconds','day','done','seen','at'];
+const SYNC_FIELDS=['prayers','runs','lifts','bookIdx','chapter','ideas','writing','writeSeconds','meditationVerse','day','done','seen','at'];
 let syncInfo=store.get(SYNC_KEY)||{};
 let cloudRevision=Number.isInteger(syncInfo.revision)?syncInfo.revision:0;
 let cloudBaseline=syncInfo.baseline||null;
@@ -752,8 +783,24 @@ function clearModule(k){
   sync();
 }
 document.querySelectorAll('[data-clear]').forEach(btn=>btn.addEventListener('click',()=>clearModule(btn.dataset.clear)));
+function clearDay(){
+  if(!confirm("Clear today's prayers, ideas, writing, timer, and POWER completion? Weekly exercise totals, Bible progress, and saved drafts will stay.")) return;
+  state.prayers=0;
+  state.ideas=[];
+  resetWriting();
+  state.day=localDay();
+  state.done={...DEFAULTS.done};
+  state.seen={...DEFAULTS.seen};
+  state.at={};
+  sync();
+}
+$('clear-day').addEventListener('click',clearDay);
 
-function buildBooks(){ $('book').innerHTML=BIBLE.map((b,i)=>`<option value="${i}">${b[0]}</option>`).join('') }
+function buildBooks(){
+  const options=BIBLE.map((b,i)=>`<option value="${i}">${b[0]}</option>`).join('');
+  $('book').innerHTML=options;
+  $('meditation-book').innerHTML=options;
+}
 function buildChapters(){
   $('chapter').innerHTML=Array.from({length:BIBLE[state.bookIdx][1]},(_,i)=>`<option value="${i+1}">${i+1}</option>`).join('');
 }
@@ -769,6 +816,67 @@ $('read-done').addEventListener('click',()=>{
   state.done.r=true;
   sync();
 });
+
+let meditationLoading=false;
+function meditationError(message){
+  const status=$('meditation-status');
+  status.textContent=message; status.classList.add('error');
+}
+function parseMeditationRange(value){
+  const match=value.trim().match(/^(\d{1,3})(?:\s*[-–—]\s*(\d{1,3}))?$/);
+  if(!match) return null;
+  const start=Number(match[1]), end=Number(match[2]||match[1]);
+  return start>=1&&end>=start?{start,end}:null;
+}
+async function findMeditationVerse(){
+  if(meditationLoading) return;
+  const bookIdx=Number($('meditation-book').value);
+  const chapter=Number($('meditation-chapter').value);
+  const range=parseMeditationRange($('meditation-range').value);
+  if(!BIBLE[bookIdx]||!Number.isInteger(chapter)||chapter<1||chapter>BIBLE[bookIdx][1]){
+    meditationError('Enter a valid chapter for the selected book.'); return;
+  }
+  if(!range){meditationError('Enter one verse or a range such as 28-30.'); return}
+  if(!navigator.onLine){meditationError('You are offline. Your saved meditation verse is still available.'); return}
+  const reference=`${BIBLE[bookIdx][0]} ${chapter}:${range.start}${range.end===range.start?'':`-${range.end}`}`;
+  meditationLoading=true;
+  $('meditation-find').disabled=true;
+  const status=$('meditation-status');
+  status.classList.remove('error'); status.textContent='Finding verse…';
+  try{
+    const response=await fetch(`https://bible-api.com/${encodeURIComponent(reference)}?translation=web`);
+    let data={};
+    try{data=await response.json()}catch{}
+    if(!response.ok||data.error||!String(data.text||'').trim()) throw new Error(data.error||'Verse not found. Check the reference and try again.');
+    const verses=Array.isArray(data.verses)?data.verses:[];
+    const actualStart=Number(verses[0]?.verse)||range.start;
+    const actualEnd=Number(verses[verses.length-1]?.verse)||range.end;
+    state.meditationVerse={reference:String(data.reference||reference),book:BIBLE[bookIdx][0],chapter,startVerse:actualStart,endVerse:actualEnd,text:String(data.text).trim(),translation:'WEB',retrievedAt:new Date().toISOString()};
+    status.textContent='Verse saved.';
+    sync();
+  }catch(error){
+    meditationError(error instanceof TypeError?'Could not reach the verse service. Your saved verse was not changed.':String(error.message||'Verse lookup failed.'));
+  }finally{
+    meditationLoading=false; $('meditation-find').disabled=false;
+  }
+}
+function clearMeditationVerse(){
+  if(!state.meditationVerse||!confirm('Clear the saved meditation verse?')) return;
+  state.meditationVerse=null;
+  $('meditation-status').textContent='';
+  sync();
+}
+$('meditation-find').addEventListener('click',findMeditationVerse);
+$('meditation-range').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault(); findMeditationVerse()}});
+$('meditation-clear').addEventListener('click',clearMeditationVerse);
+
+function renderMeditationVerse(){
+  const verse=state.meditationVerse;
+  $('meditation-verse').classList.toggle('hidden',!verse);
+  if(!verse) return;
+  $('meditation-reference').textContent=verse.reference;
+  $('meditation-text').textContent=verse.text;
+}
 
 function renderRead(){
   $('book').value=state.bookIdx;
@@ -838,7 +946,7 @@ document.querySelectorAll('.tab').forEach(tab=>{
 });
 
 function renderDashboard(){
-  renderMeter(); renderPray(); renderRuns(); renderIdeas(); renderRead(); renderDrafts();
+  renderMeter(); renderPray(); renderRuns(); renderIdeas(); renderRead(); renderMeditationVerse(); renderDrafts();
   renderTimer(); renderCards();
 }
 function sync(){
@@ -846,6 +954,8 @@ function sync(){
 }
 
 buildBooks(); buildChapters();
+$('meditation-book').value=state.bookIdx;
+$('meditation-chapter').value=state.chapter;
 box.value=state.writing;
 $('word-count').textContent=state.writing.trim()?state.writing.trim().split(/\s+/).length:0;
 sync();

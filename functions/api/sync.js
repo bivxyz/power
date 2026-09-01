@@ -1,7 +1,7 @@
 const OWNER = 'owner';
 const FIELD_NAMES = new Set([
   'prayers', 'runs', 'lifts', 'bookIdx', 'chapter', 'ideas', 'writing',
-  'writeSeconds', 'day', 'done', 'seen', 'at'
+  'writeSeconds', 'meditationVerse', 'day', 'done', 'seen', 'at'
 ]);
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
