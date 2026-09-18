@@ -391,10 +391,11 @@ const dayKey=d=>{
 const localDay=()=>dayKey(new Date());
 const parseDay=key=>{const [y,m,d]=key.split('-').map(Number); return new Date(y,m-1,d)};
 const shiftDay=(key,n)=>{const d=parseDay(key); d.setDate(d.getDate()+n); return dayKey(d)};
+const weekStart=(d=new Date())=>{const m=new Date(d); m.setDate(m.getDate()-((m.getDay()+6)%7)); return dayKey(m)};
 const DEFAULTS={
   prayers:0, runs:0, lifts:0, bookIdx:40, chapter:4, readChapters:[], drafts:[], ideas:[], writing:'', writeTitle:'', writeSeconds:0,
   meditationVerse:null, chaptersToday:0, history:{},
-  day:null,
+  day:null, week:null,
   done:{p:false,o:false,w:false,e:false,r:false},
   seen:{p:false,o:false,w:false,e:false,r:false},
   at:{}
@@ -437,12 +438,26 @@ function rollDailyState(){
   };
   return true;
 }
-rollDailyState();
+function rollWeeklyState(){
+  const week=weekStart();
+  if(!state.week){state.week=week; return false}
+  if(state.week===week) return false;
+  state.week=week;
+  state.runs=0;
+  state.lifts=0;
+  return true;
+}
+function rollState(){
+  const rolledWeek=rollWeeklyState();
+  const rolledDay=rollDailyState();
+  return rolledWeek||rolledDay;
+}
+rollState();
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 
-const SYNC_FIELDS=['prayers','runs','lifts','bookIdx','chapter','ideas','writing','writeTitle','writeSeconds','meditationVerse','chaptersToday','day','done','seen','at'];
+const SYNC_FIELDS=['prayers','runs','lifts','bookIdx','chapter','ideas','writing','writeTitle','writeSeconds','meditationVerse','chaptersToday','day','week','done','seen','at'];
 let syncInfo=store.get(SYNC_KEY)||{};
 let cloudRevision=Number.isInteger(syncInfo.revision)?syncInfo.revision:0;
 let cloudBaseline=syncInfo.baseline||null;
@@ -543,7 +558,7 @@ function applyCloud(cloud,preserveLocal){
     state.drafts=[...drafts.values()];
     Object.entries(localChanges.historyChanges).forEach(([day,row])=>{state.history[day]=clone(row)});
   }
-  rollDailyState();
+  rollState();
   mirrorToday();
   store.set(KEY,state); persistSyncInfo(cloud.updatedAt); buildChapters(); renderDashboard();
   setSyncStatus('synced',relativeSyncTime(cloud.updatedAt));
@@ -631,9 +646,7 @@ function toggle(k){
 $('today-label').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
 
 function weekKeys(){
-  const d=new Date();
-  d.setDate(d.getDate()-((d.getDay()+6)%7));
-  const start=dayKey(d);
+  const start=weekStart();
   return Array.from({length:7},(_,i)=>shiftDay(start,i));
 }
 function dayRow(key){
@@ -958,6 +971,7 @@ function clearDay(){
   state.ideas=[];
   resetWriting();
   state.day=localDay();
+  state.week=weekStart();
   state.chaptersToday=0;
   state.done={...DEFAULTS.done};
   state.seen={...DEFAULTS.seen};
@@ -1134,10 +1148,10 @@ $('word-count').textContent=state.writing.trim()?state.writing.trim().split(/\s+
 sync();
 startCloudSync();
 setInterval(()=>{
-  if(rollDailyState()){renderDashboard(); save()}
+  if(rollState()){renderDashboard(); save()}
 },60000);
 document.addEventListener('visibilitychange',()=>{
-  if(!document.hidden&&rollDailyState()){renderDashboard(); save()}
+  if(!document.hidden&&rollState()){renderDashboard(); save()}
 });
 </script>
 </body>

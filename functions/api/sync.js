@@ -1,7 +1,7 @@
 const OWNER = 'owner';
 const FIELD_NAMES = new Set([
   'prayers', 'runs', 'lifts', 'bookIdx', 'chapter', 'ideas', 'writing', 'writeTitle',
-  'writeSeconds', 'meditationVerse', 'chaptersToday', 'day', 'done', 'seen', 'at'
+  'writeSeconds', 'meditationVerse', 'chaptersToday', 'day', 'week', 'done', 'seen', 'at'
 ]);
 const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
 const LETTER_KEYS = new Set(['p', 'o', 'w', 'e', 'r']);

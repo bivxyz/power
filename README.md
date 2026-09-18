@@ -32,7 +32,7 @@ The app never grows a reading view, a search, or an archive. Obsidian already do
 
 **Write** — ten minutes. A subject line on top, the body underneath. Typing in the body starts the timer automatically, while play/pause remains available; the subject never starts it. A saved draft keeps its subject and lists under it. Save a thought as a timestamped draft to clear the writing box and continue it later from any synced device.
 
-**Exercise** — three run check-ins and three lifting check-ins, cleared together when the week rolls over. Adding any run or lift marks Exercise complete for the current day; the 3+3 counts remain weekly totals.
+**Exercise** — three run check-ins and three lifting check-ins. The 3+3 counts are weekly totals and clear themselves on Monday. Adding any run or lift marks Exercise complete for the current day.
 
 **Read** — book and chapter dropdowns covering all 66 books with correct chapter counts. Marking a chapter read checks it off in the Bible tab, advances to the next chapter, and rolls to the next book at the end. The card stays available so multiple chapters can be logged in one sitting. Chapter squares in the Bible tab can also be toggled directly for manual entry or correction without moving the current reading position. A compact **Verse to meditate on** lookup accepts a single verse or same-chapter range, retrieves its World English Bible text, and syncs the one saved passage across devices until it is replaced or cleared.
 
@@ -44,7 +44,7 @@ The **POWER letters** in the header are buttons. Tap one to mark a discipline do
 
 Completion fires once, on the transition (third prayer, fifth idea, timer hitting zero). Undo sets it back to false and it stays false — it will not silently re-complete itself because the underlying count is still at three.
 
-At the first load after local midnight, all five POWER completion letters reset for the new day. Entered module data and weekly exercise totals are preserved. An open dashboard also checks for a date change when it becomes visible and once per minute. **Clear day** provides a confirmed manual reset for prayers, ideas, writing, its timer, and POWER completion while preserving weekly exercise totals, Bible progress, and saved drafts.
+Two rollovers, on different clocks. At the first load after local midnight, all five POWER completion letters reset for the new day; entered module data and the weekly exercise totals are preserved, because a day starting fresh is not the same as a week starting fresh. At the first load in a new week, Monday, the run and lift counts clear. Either one fires on its own, so a dashboard left open across Sunday midnight still rolls the week without needing the day to change. An open dashboard also checks for a date change when it becomes visible and once per minute. **Clear day** provides a confirmed manual reset for prayers, ideas, writing, its timer, and POWER completion while preserving weekly exercise totals, Bible progress, and saved drafts.
 
 ---
 
@@ -59,8 +59,6 @@ A **Week** tab beside Today and Bible. Monday through Sunday, no paging.
 One rule keeps that from getting confusing: **today is owned by the Today tab, every prior day is owned by history.** Clicking today's column in the grid runs the same code as tapping the letter in the header, timestamp and all. Clicking any earlier day writes straight to that day's record.
 
 **Streaks** are per letter, not one number for all five. An all-five streak would sit at zero permanently, because Exercise is 3+3 weekly and is false most days by design.
-
-One wart, stated plainly: `runs` and `lifts` still only reset when you hit Clear on the Exercise card, so their week bars read stale into a new week until you do. Automatic weekly rollover is still the roadmap item below.
 
 ---
 
@@ -143,7 +141,6 @@ Keyboard focus is visible, `prefers-reduced-motion` is respected, and the layout
 
 Ordered by whether it survives the "will this actually get used" test.
 
-- [ ] Weekly rollover for the run and lift counts
 - [ ] Outbound sends counter, once there's a version of it that isn't just another number to look at
 
 ### Not doing
