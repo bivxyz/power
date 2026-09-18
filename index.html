@@ -172,6 +172,46 @@
   .sync-init{font-size:10px; padding:7px 10px}
   @keyframes pulse{to{opacity:.35}}
 
+  .week-panel{margin-top:22px}
+  .target-row{display:grid; grid-template-columns:76px 66px 1fr; align-items:center; gap:12px; padding:9px 0; border-top:1px solid var(--line)}
+  .target-row:first-child{border-top:none}
+  .target-name{font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+  .target-count{font-family:var(--mono); font-size:12px; color:var(--ink); text-align:right}
+  .target-row.hit .target-count{color:var(--gold)}
+  .target-row .pips{margin-top:0}
+
+  .week-grid{display:grid; grid-template-columns:auto repeat(7,minmax(0,1fr)); gap:4px; margin-top:22px; align-items:center}
+  .week-head{font-family:var(--mono); font-size:10px; letter-spacing:.06em; color:var(--dim); text-align:center; line-height:1.35; padding-bottom:4px}
+  .week-head .dnum{display:block; font-size:12px; color:var(--muted)}
+  .week-head.today, .week-head.today .dnum{color:var(--gold)}
+  .week-row-label{font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); padding-right:10px; white-space:nowrap}
+  .week-row-label .short{display:none}
+  .week-cell{width:100%; height:30px; padding:0; appearance:none; cursor:pointer; border-radius:6px; background:var(--line);
+        border:1px solid transparent; transition:background-color .16s, border-color .16s, transform .1s}
+  .week-cell:hover:not(:disabled){border-color:var(--gold)}
+  .week-cell:active:not(:disabled){transform:scale(.94)}
+  .week-cell.today{border-color:var(--line2)}
+  .week-cell.on{background:var(--gold); border-color:#ffd88a}
+  .week-cell:disabled{cursor:default; background:none; border-color:#232326; opacity:1}
+
+  .streaks{display:flex; gap:10px; margin-top:24px; padding-top:20px; border-top:1px solid var(--line); flex-wrap:wrap}
+  .streak{flex:1; min-width:56px; text-align:center}
+  .streak .n{font-family:var(--hand); font-weight:700; font-size:34px; line-height:1; color:var(--dim)}
+  .streak.live .n{color:var(--gold)}
+  .streak .lab{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); margin-top:6px}
+  .streak-best{font-family:var(--mono); font-size:11px; color:var(--dim); margin-top:16px}
+  @media(max-width:640px){
+    .week-row-label .full{display:none}
+    .week-row-label .short{display:inline}
+    .week-row-label{padding-right:7px}
+    .week-grid{gap:3px}
+    .week-cell{height:26px}
+    .target-row{grid-template-columns:62px 58px 1fr; gap:9px}
+    .streaks{gap:6px; flex-wrap:nowrap}
+    .streak{min-width:0}
+    .streak .n{font-size:30px}
+  }
+
   footer{margin-top:6vh; padding:26px 0 12vh; border-top:1px solid var(--line);
          font-family:var(--mono); font-size:12px; color:var(--dim);
          display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap}
@@ -204,6 +244,7 @@
     <div class="day-actions">
       <div class="tabs" role="tablist">
         <button class="tab" data-view="today" role="tab" aria-selected="true">Today</button>
+        <button class="tab" data-view="week" role="tab" aria-selected="false">Week</button>
         <button class="tab" data-view="bible" role="tab" aria-selected="false">Bible</button>
       </div>
       <button class="btn danger" id="clear-day" type="button">Clear day</button>
@@ -232,21 +273,22 @@
     <article class="card c8" data-k="o">
       <div class="card-head"><h2>Organize</h2><span class="eyebrow">Idea machine</span></div>
       <div class="row">
-        <input id="idea-input" type="text" placeholder="Deterministic schema scoring for Shopify">
+        <input id="idea-input" type="text" aria-label="New idea">
         <button class="btn solid" id="idea-add" type="button">Add</button>
       </div>
       <div class="pips" id="idea-pips" aria-hidden="true"></div>
       <ol class="ideas" id="idea-list"></ol>
       <p class="empty" id="idea-empty">Nothing yet. The first one is always the obvious one. Write it anyway.</p>
       <div class="foot">
-        <span><span id="idea-left">10</span> slots left &middot; <span id="idea-week">31</span> this week</span>
+        <span><span id="idea-left">5</span> slots left &middot; <span id="idea-week">0</span> this week</span>
         <span class="button-group"><button class="btn danger" data-clear="o" type="button">Clear</button><button class="btn" id="idea-copy" type="button">Copy ideas</button></span>
       </div>
     </article>
 
     <article class="card c8" data-k="w">
       <div class="card-head"><h2>Write</h2><span class="timer-wrap"><span class="eyebrow" id="timer" style="font-size:16px; letter-spacing:.04em; color:var(--ink)">10:00</span><button class="btn solid timer-button" id="timer-toggle" type="button" aria-label="Start timer" title="Start timer"></button></span></div>
-      <textarea id="write-box" rows="8" placeholder="Start typing." style="margin-top:18px"></textarea>
+      <div class="row"><input id="write-title" type="text" placeholder="What I'm writing about today" aria-label="What I'm writing about today"></div>
+      <textarea id="write-box" rows="8" placeholder="Start typing." style="margin-top:9px"></textarea>
       <section class="drafts-panel">
         <div class="drafts-head"><p class="eyebrow">Saved drafts</p><span class="eyebrow" id="draft-count">0 drafts</span></div>
         <ol class="draft-list" id="draft-list"></ol>
@@ -297,6 +339,18 @@
   </div>
 </div>
 
+<div id="view-week" class="hidden">
+  <div class="grid">
+    <article class="card c12">
+      <div class="card-head"><h2>This week</h2><span class="eyebrow" id="week-left"></span></div>
+      <div class="week-panel" id="week-targets"></div>
+      <div class="week-grid" id="week-grid"></div>
+      <div class="streaks" id="week-streaks"></div>
+      <p class="streak-best" id="streak-best"></p>
+    </article>
+  </div>
+</div>
+
 <div id="view-bible" class="hidden">
   <div class="grid">
     <article class="card c12">
@@ -323,16 +377,23 @@ const LETTERS=[
  {k:'r',L:'R',name:'Read'}
 ];
 
+const IDEA_CAP=5;
+const WEEK_TARGETS={ideas:25, writeMinutes:50, runs:3, lifts:3, chapters:7};
+
 const BIBLE=[["Genesis",50],["Exodus",40],["Leviticus",27],["Numbers",36],["Deuteronomy",34],["Joshua",24],["Judges",21],["Ruth",4],["1 Samuel",31],["2 Samuel",24],["1 Kings",22],["2 Kings",25],["1 Chronicles",29],["2 Chronicles",36],["Ezra",10],["Nehemiah",13],["Esther",10],["Job",42],["Psalms",150],["Proverbs",31],["Ecclesiastes",12],["Song of Solomon",8],["Isaiah",66],["Jeremiah",52],["Lamentations",5],["Ezekiel",48],["Daniel",12],["Hosea",14],["Joel",3],["Amos",9],["Obadiah",1],["Jonah",4],["Micah",7],["Nahum",3],["Habakkuk",3],["Zephaniah",3],["Haggai",2],["Zechariah",14],["Malachi",4],["Matthew",28],["Mark",16],["Luke",24],["John",21],["Acts",28],["Romans",16],["1 Corinthians",16],["2 Corinthians",13],["Galatians",6],["Ephesians",6],["Philippians",4],["Colossians",4],["1 Thessalonians",5],["2 Thessalonians",3],["1 Timothy",6],["2 Timothy",4],["Titus",3],["Philemon",1],["Hebrews",13],["James",5],["1 Peter",5],["2 Peter",3],["1 John",5],["2 John",1],["3 John",1],["Jude",1],["Revelation",22]];
 
 const KEY='power.v2';
 const SYNC_KEY='power.sync.v1';
-const localDay=()=>{
-  const d=new Date(), pad=n=>String(n).padStart(2,'0');
+const dayKey=d=>{
+  const pad=n=>String(n).padStart(2,'0');
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 };
+const localDay=()=>dayKey(new Date());
+const parseDay=key=>{const [y,m,d]=key.split('-').map(Number); return new Date(y,m-1,d)};
+const shiftDay=(key,n)=>{const d=parseDay(key); d.setDate(d.getDate()+n); return dayKey(d)};
 const DEFAULTS={
-  prayers:0, runs:0, lifts:0, bookIdx:40, chapter:4, readChapters:[], drafts:[], ideas:[], writing:'', writeSeconds:0, meditationVerse:null,
+  prayers:0, runs:0, lifts:0, bookIdx:40, chapter:4, readChapters:[], drafts:[], ideas:[], writing:'', writeTitle:'', writeSeconds:0,
+  meditationVerse:null, chaptersToday:0, history:{},
   day:null,
   done:{p:false,o:false,w:false,e:false,r:false},
   seen:{p:false,o:false,w:false,e:false,r:false},
@@ -352,6 +413,7 @@ const state={
   ideas:Array.isArray(saved.ideas)?saved.ideas:[],
   readChapters:Array.isArray(saved.readChapters)?saved.readChapters:[],
   drafts:Array.isArray(saved.drafts)?saved.drafts:[],
+  history:saved.history&&typeof saved.history==='object'&&!Array.isArray(saved.history)?{...saved.history}:{},
   done:{...DEFAULTS.done, ...(saved.done||{})},
   seen:{...DEFAULTS.seen, ...(saved.seen||{})},
   at:{...(saved.at||{})}
@@ -365,9 +427,10 @@ function rollDailyState(){
   state.day=today;
   state.done={...DEFAULTS.done};
   state.at={};
+  state.chaptersToday=0;
   state.seen={
     p:state.prayers>=3,
-    o:state.ideas.length>=10,
+    o:state.ideas.length>=IDEA_CAP,
     w:state.writeSeconds>=600,
     e:false,
     r:false
@@ -379,7 +442,7 @@ rollDailyState();
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 
-const SYNC_FIELDS=['prayers','runs','lifts','bookIdx','chapter','ideas','writing','writeSeconds','meditationVerse','day','done','seen','at'];
+const SYNC_FIELDS=['prayers','runs','lifts','bookIdx','chapter','ideas','writing','writeTitle','writeSeconds','meditationVerse','chaptersToday','day','done','seen','at'];
 let syncInfo=store.get(SYNC_KEY)||{};
 let cloudRevision=Number.isInteger(syncInfo.revision)?syncInfo.revision:0;
 let cloudBaseline=syncInfo.baseline||null;
@@ -392,6 +455,7 @@ function stateSnapshot(){
   SYNC_FIELDS.forEach(key=>out[key]=clone(state[key]));
   out.readChapters=[...new Set(state.readChapters)];
   out.drafts=clone(state.drafts);
+  out.history=clone(state.history);
   return out;
 }
 function persistSyncInfo(updatedAt=syncInfo.updatedAt){
@@ -410,7 +474,7 @@ function relativeSyncTime(value){
   return `Synced ${Math.floor(seconds/60)}m ago`;
 }
 function diffFromBaseline(){
-  if(!cloudBaseline) return {changes:{},chapterChanges:{},draftChanges:{}};
+  if(!cloudBaseline) return {changes:{},chapterChanges:{},draftChanges:{},historyChanges:{}};
   const changes={};
   SYNC_FIELDS.forEach(key=>{
     if(JSON.stringify(state[key])!==JSON.stringify(cloudBaseline[key])) changes[key]=clone(state[key]);
@@ -421,12 +485,22 @@ function diffFromBaseline(){
   const localDrafts=new Map(state.drafts.map(draft=>[draft.id,draft]));
   const baseDrafts=new Map((cloudBaseline.drafts||[]).map(draft=>[draft.id,draft]));
   const draftChanges={};
-  localDrafts.forEach((draft,id)=>{if(!baseDrafts.has(id)) draftChanges[id]={text:draft.text,createdAt:draft.createdAt}});
+  localDrafts.forEach((draft,id)=>{if(!baseDrafts.has(id)) draftChanges[id]={title:draft.title||'',text:draft.text,createdAt:draft.createdAt}});
   baseDrafts.forEach((draft,id)=>{if(!localDrafts.has(id)) draftChanges[id]={deleted:true}});
-  return {changes,chapterChanges,draftChanges};
+  const baseHistory=cloudBaseline.history||{}, historyChanges={};
+  Object.keys(state.history).forEach(day=>{
+    if(JSON.stringify(state.history[day])!==JSON.stringify(baseHistory[day])) historyChanges[day]=clone(state.history[day]);
+  });
+  return {changes,chapterChanges,draftChanges,historyChanges};
 }
-function hasPatch(patch){ return Object.keys(patch.changes).length||Object.keys(patch.chapterChanges).length||Object.keys(patch.draftChanges).length }
+function hasPatch(patch){ return Object.keys(patch.changes).length||Object.keys(patch.chapterChanges).length||Object.keys(patch.draftChanges).length||Object.keys(patch.historyChanges).length }
+function mirrorToday(){
+  if(!state.day) return;
+  state.history[state.day]={...state.done,
+    ideas:state.ideas.length, writeSeconds:state.writeSeconds, chapters:state.chaptersToday};
+}
 function save(){
+  mirrorToday();
   store.set(KEY,state);
   if(cloudInitialized) scheduleCloudSync();
 }
@@ -449,10 +523,11 @@ async function apiSync(method,body){
   return data;
 }
 function applyCloud(cloud,preserveLocal){
-  const localChanges=preserveLocal&&cloudBaseline?diffFromBaseline():{changes:{},chapterChanges:{},draftChanges:{}};
+  const localChanges=preserveLocal&&cloudBaseline?diffFromBaseline():{changes:{},chapterChanges:{},draftChanges:{},historyChanges:{}};
   SYNC_FIELDS.forEach(key=>{if(key in cloud.state) state[key]=clone(cloud.state[key])});
   state.readChapters=Array.isArray(cloud.state.readChapters)?[...new Set(cloud.state.readChapters)]:[];
   state.drafts=Array.isArray(cloud.state.drafts)?clone(cloud.state.drafts):[];
+  state.history=cloud.state.history&&typeof cloud.state.history==='object'?clone(cloud.state.history):{};
   cloudBaseline=clone(cloud.state);
   cloudRevision=cloud.revision;
   cloudInitialized=cloud.initialized;
@@ -463,11 +538,13 @@ function applyCloud(cloud,preserveLocal){
     state.readChapters=[...chapters];
     const drafts=new Map(state.drafts.map(draft=>[draft.id,draft]));
     Object.entries(localChanges.draftChanges).forEach(([id,draft])=>{
-      if(draft.deleted) drafts.delete(id); else drafts.set(id,{id,text:draft.text,createdAt:draft.createdAt});
+      if(draft.deleted) drafts.delete(id); else drafts.set(id,{id,title:draft.title||'',text:draft.text,createdAt:draft.createdAt});
     });
     state.drafts=[...drafts.values()];
+    Object.entries(localChanges.historyChanges).forEach(([day,row])=>{state.history[day]=clone(row)});
   }
   rollDailyState();
+  mirrorToday();
   store.set(KEY,state); persistSyncInfo(cloud.updatedAt); buildChapters(); renderDashboard();
   setSyncStatus('synced',relativeSyncTime(cloud.updatedAt));
 }
@@ -500,11 +577,13 @@ async function pushCloud(force=false){
 async function initializeCloud(){
   if(cloudInFlight) return;
   cloudInFlight=true; $('sync-init').disabled=true; setSyncStatus('syncing','Initializing…');
-  const snapshot=stateSnapshot(), changes={...snapshot}; delete changes.readChapters; delete changes.drafts;
+  const snapshot=stateSnapshot(), changes={...snapshot};
+  delete changes.readChapters; delete changes.drafts; delete changes.history;
   const chapterChanges=Object.fromEntries(snapshot.readChapters.map(key=>[key,true]));
-  const draftChanges=Object.fromEntries(snapshot.drafts.map(draft=>[draft.id,{text:draft.text,createdAt:draft.createdAt}]));
+  const draftChanges=Object.fromEntries(snapshot.drafts.map(draft=>[draft.id,{title:draft.title||'',text:draft.text,createdAt:draft.createdAt}]));
+  const historyChanges=clone(snapshot.history);
   try{
-    const result=await apiSync('PATCH',{requestId:requestId(),baseRevision:0,initialize:true,changes,chapterChanges,draftChanges});
+    const result=await apiSync('PATCH',{requestId:requestId(),baseRevision:0,initialize:true,changes,chapterChanges,draftChanges,historyChanges});
     applyCloud(result,false); $('sync-init').classList.add('hidden');
   }catch(error){
     setSyncStatus('error',error.status===401?'Sign in through Cloudflare Access':'Initialization failed · try again');
@@ -528,7 +607,7 @@ async function startCloudSync(){
 
 const natural={
   p:()=>state.prayers>=3,
-  o:()=>state.ideas.length>=10,
+  o:()=>state.ideas.length>=IDEA_CAP,
   w:()=>state.writeSeconds>=600,
   e:()=>false,
   r:()=>false
@@ -550,6 +629,94 @@ function toggle(k){
 }
 
 $('today-label').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+
+function weekKeys(){
+  const d=new Date();
+  d.setDate(d.getDate()-((d.getDay()+6)%7));
+  const start=dayKey(d);
+  return Array.from({length:7},(_,i)=>shiftDay(start,i));
+}
+function dayRow(key){
+  if(key===state.day) return {...state.done,
+    ideas:state.ideas.length, writeSeconds:state.writeSeconds, chapters:state.chaptersToday};
+  return state.history[key]||{};
+}
+function weekStats(){
+  const today=localDay();
+  let ideas=0, writeSeconds=0, chapters=0;
+  weekKeys().forEach(key=>{
+    if(key>today) return;
+    const row=dayRow(key);
+    ideas+=row.ideas||0; writeSeconds+=row.writeSeconds||0; chapters+=row.chapters||0;
+  });
+  return {ideas, writeMinutes:Math.floor(writeSeconds/60), chapters, runs:state.runs, lifts:state.lifts};
+}
+function letterStreak(k){
+  const today=localDay();
+  let cursor=dayRow(today)[k]?today:shiftDay(today,-1), n=0;
+  while(dayRow(cursor)[k]){ n++; cursor=shiftDay(cursor,-1) }
+  return n;
+}
+function letterLongest(k){
+  const days=[...new Set([...Object.keys(state.history),localDay()])].sort();
+  let best=0, run=0, prev=null;
+  days.forEach(key=>{
+    if(dayRow(key)[k]){
+      run=prev&&shiftDay(prev,1)===key?run+1:1;
+      if(run>best) best=run;
+    } else run=0;
+    prev=key;
+  });
+  return best;
+}
+function bar(have,goal){
+  const filled=goal>0?Math.round(Math.min(have/goal,1)*10):0;
+  return Array.from({length:10},(_,i)=>`<span class="pip ${i<filled?'on':''}"></span>`).join('');
+}
+function renderWeek(){
+  const today=localDay(), keys=weekKeys(), stats=weekStats();
+  const left=keys.filter(key=>key>=today).length;
+  $('week-left').textContent=left===1?'Last day':`${left} days left`;
+
+  $('week-targets').innerHTML=[
+    ['Ideas',stats.ideas,WEEK_TARGETS.ideas,''],
+    ['Write',stats.writeMinutes,WEEK_TARGETS.writeMinutes,'m'],
+    ['Run',stats.runs,WEEK_TARGETS.runs,''],
+    ['Lift',stats.lifts,WEEK_TARGETS.lifts,''],
+    ['Chapters',stats.chapters,WEEK_TARGETS.chapters,'']
+  ].map(([label,have,goal,unit])=>
+    `<div class="target-row${have>=goal?' hit':''}"><span class="target-name">${label}</span>
+       <span class="target-count">${have}${unit}/${goal}${unit}</span>
+       <span class="pips">${bar(have,goal)}</span></div>`).join('');
+
+  const head=keys.map(key=>{
+    const d=parseDay(key);
+    return `<div class="week-head${key===today?' today':''}">${d.toLocaleDateString('en-US',{weekday:'short'}).slice(0,1)}<span class="dnum">${d.getDate()}</span></div>`;
+  }).join('');
+  const rows=LETTERS.map(l=>
+    `<span class="week-row-label"><span class="full">${l.name}</span><span class="short">${l.L}</span></span>`+
+    keys.map(key=>{
+      const on=!!dayRow(key)[l.k], future=key>today, isToday=key===today;
+      const when=isToday?'today':parseDay(key).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+      return `<button class="week-cell${on?' on':''}${isToday?' today':''}" type="button" data-day="${key}" data-k="${l.k}"
+        ${future?'disabled':''} aria-pressed="${on}" aria-label="${l.name}, ${when}" title="${l.name} · ${when}"></button>`;
+    }).join('')).join('');
+  $('week-grid').innerHTML=`<span></span>${head}${rows}`;
+  $('week-grid').querySelectorAll('.week-cell').forEach(cell=>cell.addEventListener('click',()=>{
+    const day=cell.dataset.day, k=cell.dataset.k;
+    if(day===localDay()){ toggle(k); return }
+    const row=state.history[day]||(state.history[day]={});
+    row[k]=!row[k];
+    sync();
+  }));
+
+  $('week-streaks').innerHTML=LETTERS.map(l=>{
+    const n=letterStreak(l.k);
+    return `<div class="streak${n>0?' live':''}"><p class="n">${n}</p><p class="lab">${l.L}</p></div>`;
+  }).join('');
+  const best=LETTERS.map(l=>({name:l.name,n:letterLongest(l.k)})).sort((a,b)=>b.n-a.n)[0];
+  $('streak-best').textContent=best.n?`longest: ${best.name}, ${best.n} day${best.n===1?'':'s'}`:'no streak yet';
+}
 
 function renderMeter(){
   const m=$('meter');
@@ -598,26 +765,26 @@ function renderRuns(){
 function addIdea(){
   const el=$('idea-input');
   const v=el.value.trim();
-  if(!v||state.ideas.length>=10) return;
+  if(!v||state.ideas.length>=IDEA_CAP) return;
   state.ideas.push(v);
   el.value='';
   sync();
-  if(state.ideas.length<10) el.focus();
+  if(state.ideas.length<IDEA_CAP) el.focus();
 }
+$('write-title').addEventListener('input',e=>{ state.writeTitle=e.target.value; save() });
 $('idea-add').addEventListener('click',addIdea);
 $('idea-input').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault(); addIdea()} });
 
 function renderIdeas(){
   const n=state.ideas.length;
-  $('idea-pips').innerHTML=Array.from({length:10},(_,i)=>`<span class="pip ${i<n?'on':''}"></span>`).join('');
+  $('idea-pips').innerHTML=Array.from({length:IDEA_CAP},(_,i)=>`<span class="pip ${i<n?'on':''}"></span>`).join('');
   $('idea-list').innerHTML=state.ideas.map((t,i)=>
     `<li><span class="n">${String(i+1).padStart(2,'0')}</span><span>${esc(t)}</span></li>`).join('');
   $('idea-empty').classList.toggle('hidden',n>0);
-  $('idea-left').textContent=10-n;
-  $('idea-week').textContent=31+n;
-  $('idea-add').disabled=n>=10;
-  $('idea-input').disabled=n>=10;
-  $('idea-input').placeholder=n>=10?'Ten. Done for today.':'Deterministic schema scoring for Shopify';
+  $('idea-left').textContent=IDEA_CAP-n;
+  $('idea-week').textContent=weekStats().ideas;
+  $('idea-add').disabled=n>=IDEA_CAP;
+  $('idea-input').disabled=n>=IDEA_CAP;
   $('idea-copy').disabled=n===0;
 }
 
@@ -692,8 +859,8 @@ function renderTimer(){
   btn.disabled=left===0;
 }
 
-function draftLabel(text){
-  const first=text.split(/\r?\n/).map(line=>line.trim()).find(Boolean)||'Untitled draft';
+function draftLabel(draft){
+  const first=(draft.title||'').trim()||draft.text.split(/\r?\n/).map(line=>line.trim()).find(Boolean)||'Untitled draft';
   return first.length>64?first.slice(0,61)+'…':first;
 }
 function renderDrafts(){
@@ -710,7 +877,7 @@ function renderDrafts(){
     copy.className='draft-copy';
     const title=document.createElement('p');
     title.className='draft-title';
-    title.textContent=draftLabel(draft.text);
+    title.textContent=draftLabel(draft);
     const time=document.createElement('p');
     time.className='draft-time';
     time.textContent=new Date(draft.createdAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
@@ -732,18 +899,20 @@ function renderDrafts(){
     list.appendChild(li);
   });
 }
-function resetWriting(text=''){
+function resetWriting(text='',title=''){
   stopTimer(false);
   timerManuallyPaused=false;
   state.writing=text;
+  state.writeTitle=title;
   state.writeSeconds=0;
   box.value=text;
+  $('write-title').value=title;
   $('word-count').textContent=text.trim()?text.trim().split(/\s+/).length:0;
 }
 function saveDraft(){
   const text=state.writing;
   if(!text.trim()) return;
-  state.drafts.push({id:requestId(),text,createdAt:new Date().toISOString()});
+  state.drafts.push({id:requestId(),title:state.writeTitle,text,createdAt:new Date().toISOString()});
   resetWriting();
   sync();
   box.focus();
@@ -753,7 +922,7 @@ function continueDraft(id){
   if(!draft) return;
   if(state.writing.trim()&&!confirm('Replace the current writing with this saved draft?')) return;
   state.drafts=state.drafts.filter(item=>item.id!==id);
-  resetWriting(draft.text);
+  resetWriting(draft.text,draft.title||'');
   sync();
   box.focus();
 }
@@ -789,6 +958,7 @@ function clearDay(){
   state.ideas=[];
   resetWriting();
   state.day=localDay();
+  state.chaptersToday=0;
   state.done={...DEFAULTS.done};
   state.seen={...DEFAULTS.seen};
   state.at={};
@@ -812,6 +982,7 @@ $('read-done').addEventListener('click',()=>{
   if(!state.readChapters.includes(readKey)) state.readChapters.push(readKey);
   if(state.chapter<BIBLE[state.bookIdx][1]){ state.chapter++ }
   else { state.bookIdx=(state.bookIdx+1)%BIBLE.length; state.chapter=1; buildChapters() }
+  state.chaptersToday++;
   if(!state.done.r) state.at.r=stamp();
   state.done.r=true;
   sync();
@@ -897,9 +1068,9 @@ function renderRead(){
   $('bible-tracker').querySelectorAll('[data-read-key]').forEach(box=>box.addEventListener('click',()=>{
     const key=box.dataset.readKey;
     const index=state.readChapters.indexOf(key);
-    if(index>=0) state.readChapters.splice(index,1);
-    else state.readChapters.push(key);
-    renderRead(); save();
+    if(index>=0){ state.readChapters.splice(index,1); state.chaptersToday=Math.max(0,state.chaptersToday-1) }
+    else { state.readChapters.push(key); state.chaptersToday++ }
+    renderRead(); renderWeek(); save();
   }));
 }
 
@@ -911,12 +1082,14 @@ function renderCards(){
 
 $('export').addEventListener('click',()=>{
   const d=new Date().toISOString().slice(0,10);
-  const md=['---',`date: ${d}`,`pray: ${state.prayers}/3`,`organize: ${state.ideas.length}/10`,
+  const title=state.writeTitle.trim();
+  const md=['---',`date: ${d}`,`pray: ${state.prayers}/3`,`organize: ${state.ideas.length}/${IDEA_CAP}`,
     `write: ${Math.floor(state.writeSeconds/60)}m`,`runs: ${state.runs}/3`,`lifts: ${state.lifts}/3`,
     `read_next: ${BIBLE[state.bookIdx][0]} ${state.chapter}`,
-    `power: ${LETTERS.filter(l=>state.done[l.k]).map(l=>l.L).join('')||'none'}`,'---','',
+    `power: ${LETTERS.filter(l=>state.done[l.k]).map(l=>l.L).join('')||'none'}`,
+    ...(title?[`title: ${JSON.stringify(title)}`]:[]),'---','',
     '## Ideas',...(state.ideas.length?state.ideas.map((t,i)=>`${i+1}. ${t}`):['_none_']),'',
-    '## Ten minutes',state.writing||'_nothing written_',''].join('\n');
+    `## ${title||'Ten minutes'}`,state.writing||'_nothing written_',''].join('\n');
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([md],{type:'text/markdown'}));
   a.download=`${d}.md`; a.click();
@@ -940,14 +1113,13 @@ window.addEventListener('offline',()=>setSyncStatus('offline','Offline · change
 document.querySelectorAll('.tab').forEach(tab=>{
   tab.addEventListener('click',()=>{
     document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t===tab));
-    $('view-today').classList.toggle('hidden',tab.dataset.view!=='today');
-    $('view-bible').classList.toggle('hidden',tab.dataset.view!=='bible');
+    ['today','week','bible'].forEach(view=>$('view-'+view).classList.toggle('hidden',tab.dataset.view!==view));
   });
 });
 
 function renderDashboard(){
   renderMeter(); renderPray(); renderRuns(); renderIdeas(); renderRead(); renderMeditationVerse(); renderDrafts();
-  renderTimer(); renderCards();
+  renderTimer(); renderCards(); renderWeek();
 }
 function sync(){
   settle(); renderDashboard(); save();
@@ -957,6 +1129,7 @@ buildBooks(); buildChapters();
 $('meditation-book').value=state.bookIdx;
 $('meditation-chapter').value=state.chapter;
 box.value=state.writing;
+$('write-title').value=state.writeTitle;
 $('word-count').textContent=state.writing.trim()?state.writing.trim().split(/\s+/).length:0;
 sync();
 startCloudSync();
