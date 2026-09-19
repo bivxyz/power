@@ -62,11 +62,27 @@ One rule keeps that from getting confusing: **today is owned by the Today tab, e
 
 ---
 
+## Marriage
+
+A **Marriage** tab, separate from the five. It is not a POWER letter, it is not in the header meter, it is not a row in the week grid, and it has no streak.
+
+It also never writes anything to send. There is no drafting of messages, no composing on my behalf, no model in the loop at any point. The feature surfaces a prompt; the writing is mine.
+
+**Prompt.** One item a day from the Gottman 7-week fondness and admiration exercise, in the printed order. The task shows big, the belief statement sits under it as the subhead, and one box takes the response. Saving records it and holds the day; the next item appears tomorrow, not on a second save.
+
+**Date night.** Eight of the 35 items are action items, tagged `type: "date"` in the seed. Once a month three of them surface as options, on a deterministic rotation keyed to the month, so the set changes month to month and is stable within one. Picking one opens a note and a date field.
+
+**History.** Every response is kept. After item 35 the cycle restarts at item 1 with a blank box and a new pass number, so a reprise never shows the old answer in place. History sorts by date, or groups by prompt to put successive passes at the same item side by side.
+
+The 35 items live in `marriage-items.js`, transcribed verbatim. That text is copyright Dr. John M. Gottman and Dr. Julie Schwartz Gottman, distributed under license by The Gottman Institute. It is here for personal use on one private dashboard, not for distribution.
+
+---
+
 ## Data and sync
 
 The app writes immediately to `localStorage` under `power.v2`, with an in-memory fallback when storage is unavailable. Each day gets one record in `history`, keyed `YYYY-MM-DD`, holding the five completion letters plus that day's idea count, seconds written, and chapters read. Today's record is mirrored out of live state on every save, so the week view and the streaks read one source. That local copy renders first and remains usable offline. The same-origin `/api/sync` Pages Function then exchanges field-level changes, Bible chapters, and independently keyed writing drafts with D1; queued edits replay when the browser comes back online.
 
-Dashboard fields, Bible chapters, drafts, and **each history day** have independent server revisions, so edits to different items merge without replacing the whole state. History is deliberately not one blob field: a blob would let one device's offline edits clobber the other device's entire history on the automatic conflict retry, where a per-day row can only ever lose the one day both devices touched. Repeated requests are idempotent. If writing or ideas changed on two devices from the same base revision, the app asks whether to keep this device or use the cloud copy.
+Dashboard fields, Bible chapters, drafts, **each history day**, and **each marriage response** have independent server revisions, so edits to different items merge without replacing the whole state. History is deliberately not one blob field: a blob would let one device's offline edits clobber the other device's entire history on the automatic conflict retry, where a per-day row can only ever lose the one day both devices touched. Repeated requests are idempotent. If writing or ideas changed on two devices from the same base revision, the app asks whether to keep this device or use the cloud copy.
 
 The first deployment starts with an empty D1 database. On the desktop holding the authoritative `power.v2` state, select **Use this device to initialize sync** once. Other devices then adopt that cloud state after passing Cloudflare Access.
 

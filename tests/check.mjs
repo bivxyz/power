@@ -18,7 +18,7 @@ const bible = JSON.parse(bibleLiteral);
 const chapterCount = bible.reduce((sum, [, chapters]) => sum + chapters, 0);
 if (bible.length !== 66 || chapterCount !== 1189) throw new Error(`Bible data mismatch: ${bible.length} books, ${chapterCount} chapters`);
 if (!script.includes("e:()=>false") || !script.includes("if(added&&!state.done.e)")) throw new Error('Daily Exercise completion behavior is missing');
-if (!script.includes("'meditationVerse','chaptersToday','day','week'")) throw new Error('Daily rollover or meditation verse keys are not synchronized');
+if (!script.includes("'meditationVerse','chaptersToday','marriage','day','week'")) throw new Error('Daily rollover or meditation verse keys are not synchronized');
 
 if (!script.includes("timerManuallyPaused") || !script.includes("e.inputType?e.inputType.startsWith('insert')")) throw new Error('Automatic writing timer behavior is missing');
 if (!script.includes('draftChanges') || !script.includes('function saveDraft()') || !script.includes('function continueDraft(id)')) throw new Error('Draft lifecycle or synchronization behavior is missing');
@@ -26,7 +26,7 @@ if (!html.includes('id="draft-save"') || !html.includes('id="draft-list"')) thro
 if (!html.includes('id="clear-day"') || !script.includes('function clearDay()')) throw new Error('Clear day control is missing');
 if (!script.includes('state.done={...DEFAULTS.done}') || !script.includes('state.seen={...DEFAULTS.seen}')) throw new Error('Clear day completion reset is missing');
 if (!html.includes('id="meditation-find"') || !html.includes('id="meditation-verse"')) throw new Error('Meditation verse controls are missing');
-if (!script.includes("'meditationVerse','chaptersToday','day','week'") || !script.includes('async function findMeditationVerse()')) throw new Error('Meditation verse lookup or synchronization is missing');
+if (!script.includes("'meditationVerse','chaptersToday','marriage','day','week'") || !script.includes('async function findMeditationVerse()')) throw new Error('Meditation verse lookup or synchronization is missing');
 const sync = fs.readFileSync(new URL('../functions/api/sync.js', import.meta.url), 'utf8');
 
 if (!html.includes('data-view="week"') || !html.includes('id="view-week"') || !html.includes('id="week-grid"')) throw new Error('Week view markup is missing');
@@ -50,7 +50,38 @@ if (!script.includes('function rollWeeklyState()') || !script.includes('function
 if (!script.includes('state.runs=0;\n  state.lifts=0;')) throw new Error('Weekly rollover does not clear the exercise counts');
 if (/rollDailyState\(\)/.test(script.replace(/function rollDailyState\(\)/, '').replace('const rolledDay=rollDailyState();', ''))) throw new Error('A rollDailyState call bypasses the weekly rollover');
 
+const seed = fs.readFileSync(new URL('../marriage-items.js', import.meta.url), 'utf8');
+const items = new Function(seed + '; return MARRIAGE_ITEMS;')();
+if (items.length !== 35) throw new Error(`Gottman seed should hold 35 items, found ${items.length}`);
+for (let w = 1; w <= 7; w++) {
+  const n = items.filter(item => item.week === w).length;
+  if (n !== 5) throw new Error(`Week ${w} should hold 5 items, found ${n}`);
+}
+if (items.some(item => !item.belief || !item.task)) throw new Error('Every item needs a separate belief and task');
+if (items.filter(item => item.type === 'date').length !== 8) throw new Error('Expected 8 date-type items');
+if (!/personal use/i.test(seed) || !/[Nn]ot for distribution/.test(seed) || !/Gottman/.test(seed)) throw new Error('Seed file is missing its personal-use licence notice');
+
+if (!html.includes('data-view="marriage"') || !html.includes('id="view-marriage"')) throw new Error('Marriage tab is missing');
+if (!html.includes('marriage-items.js')) throw new Error('Seed file is not loaded by the page');
+if (!script.includes('function renderMarriage()') || !script.includes('function rollMarriage()')) throw new Error('Marriage rendering or daily advance is missing');
+if (!script.includes('function saveMarriageResponse()') || !html.includes('id="mx-response"')) throw new Error('Response capture is missing');
+if (!html.includes('id="mx-history-list"') || !script.includes('function renderMarriageHistory()')) throw new Error('Response history is missing');
+if (!script.includes('function monthOptions(key)') || !script.includes('MX_DATE_INDEXES')) throw new Error('Monthly date night is missing');
+if (!script.includes('marriageChanges') || !sync.includes('sync_marriage')) throw new Error('Marriage responses are not synchronized');
+if (!script.includes("'chaptersToday','marriage'")) throw new Error('Marriage state is not in the sync field list');
+
+const mxLogic = script.slice(script.indexOf('const MX_DATE_INDEXES'), script.indexOf('function renderMeter()'));
+const mxListeners = script.slice(script.indexOf("$('mx-save').addEventListener"), script.indexOf("document.querySelectorAll('.tab')"));
+const mxMarkup = html.slice(html.indexOf('id="view-marriage"'), html.indexOf('id="view-bible"'));
+if (!mxLogic || !mxListeners || !mxMarkup) throw new Error('Could not isolate the marriage feature for its content checks');
+const marriageSurface = seed + mxLogic + mxListeners + mxMarkup;
+
+if (/generate/i.test(marriageSurface)) throw new Error('The word "generate" appears in the marriage feature');
+if (/\u2665|\u2764|heart|pink|crimson|magenta/i.test(marriageSurface)) throw new Error('Marriage feature introduced hearts or pink');
+if (/fetch\(|XMLHttpRequest|https?:\/\//.test(mxLogic + mxListeners)) throw new Error('Marriage feature makes a network call');
+
 const migrations = fs.readdirSync(new URL('../migrations', import.meta.url));
 if (!migrations.includes('0003_week.sql')) throw new Error('Week migration is missing');
+if (!migrations.includes('0004_marriage.sql')) throw new Error('Marriage migration is missing');
 
-console.log('Inline syntax, DOM references, Bible data, daily clearing, automatic timer, drafts, meditation verses, week view, streaks, weekly targets, and history sync are valid.');
+console.log('Inline syntax, DOM references, Bible data, daily clearing, automatic timer, drafts, meditation verses, week view, streaks, weekly targets, history sync, and the marriage tab are valid.');
