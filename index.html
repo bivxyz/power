@@ -500,7 +500,7 @@ const parseDay=key=>{const [y,m,d]=key.split('-').map(Number); return new Date(y
 const shiftDay=(key,n)=>{const d=parseDay(key); d.setDate(d.getDate()+n); return dayKey(d)};
 const weekStart=(d=new Date())=>{const m=new Date(d); m.setDate(m.getDate()-((m.getDay()+6)%7)); return dayKey(m)};
 const DEFAULTS={
-  prayers:0, runs:0, lifts:0, bookIdx:40, chapter:4, readChapters:[], drafts:[], ideas:[], writing:'', writeTitle:'', writeSeconds:0,
+  prayers:[false,false,false], runs:0, lifts:0, bookIdx:40, chapter:4, readChapters:[], drafts:[], ideas:[], writing:'', writeTitle:'', writeSeconds:0,
   meditationVerse:null, chaptersToday:0, history:{},
   marriage:{index:0, pass:1, answeredOn:null, ideas:[], dates:[]}, marriageResponses:[],
   day:null, week:null,
@@ -508,6 +508,16 @@ const DEFAULTS={
   seen:{p:false,o:false,w:false,e:false,r:false},
   at:{}
 };
+
+// prayers used to be a 0-3 count, which forced Night to imply Morning and Midday.
+// Now it is one flag per time of day; a saved count converts to its first N flags.
+const PRAYER_LABELS=['Morning','Midday','Night'];
+function normalizePrayers(value){
+  if(Array.isArray(value)) return PRAYER_LABELS.map((_,i)=>!!value[i]);
+  const n=Number.isFinite(value)?value:0;
+  return PRAYER_LABELS.map((_,i)=>i<n);
+}
+const prayerCount=()=>state.prayers.filter(Boolean).length;
 
 const store=(()=>{ let mem={};
   try{ localStorage.setItem('__t','1'); localStorage.removeItem('__t');
@@ -522,6 +532,7 @@ const state={
   ideas:Array.isArray(saved.ideas)?saved.ideas:[],
   readChapters:Array.isArray(saved.readChapters)?saved.readChapters:[],
   drafts:Array.isArray(saved.drafts)?saved.drafts:[],
+  prayers:normalizePrayers(saved.prayers),
   history:saved.history&&typeof saved.history==='object'&&!Array.isArray(saved.history)?{...saved.history}:{},
   marriage:{...DEFAULTS.marriage, ...(saved.marriage||{}),
     ideas:Array.isArray(saved.marriage&&saved.marriage.ideas)?saved.marriage.ideas:[],
@@ -544,7 +555,7 @@ function rollDailyState(){
   state.at={};
   state.chaptersToday=0;
   state.seen={
-    p:state.prayers>=3,
+    p:prayerCount()>=1,
     o:state.ideas.length>=IDEA_CAP,
     w:state.writeSeconds>=600,
     e:false,
@@ -671,6 +682,7 @@ async function apiSync(method,body){
 function applyCloud(cloud,preserveLocal){
   const localChanges=preserveLocal&&cloudBaseline?diffFromBaseline():{changes:{},chapterChanges:{},draftChanges:{},historyChanges:{},marriageChanges:{}};
   SYNC_FIELDS.forEach(key=>{if(key in cloud.state) state[key]=clone(cloud.state[key])});
+  state.prayers=normalizePrayers(state.prayers);
   state.readChapters=Array.isArray(cloud.state.readChapters)?[...new Set(cloud.state.readChapters)]:[];
   state.drafts=Array.isArray(cloud.state.drafts)?clone(cloud.state.drafts):[];
   state.history=cloud.state.history&&typeof cloud.state.history==='object'?clone(cloud.state.history):{};
@@ -758,7 +770,7 @@ async function startCloudSync(){
 }
 
 const natural={
-  p:()=>state.prayers>=3,
+  p:()=>prayerCount()>=1,
   o:()=>state.ideas.length>=IDEA_CAP,
   w:()=>state.writeSeconds>=600,
   e:()=>false,
@@ -1146,9 +1158,31 @@ function taps(el,filled,labels,tap){
     col.append(b,p); el.appendChild(col);
   });
 }
+// Exercise keeps taps(): a run is a run, so a count is the right model there.
+// Prayer times are named and distinct, so each one toggles on its own.
+function toggles(el,flags,labels,tap){
+  el.innerHTML='';
+  labels.forEach((lab,i)=>{
+    const on=!!flags[i];
+    const col=document.createElement('div');
+    col.className='tapcol'+(on?' on':'');
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='dot'+(on?' on':'');
+    b.setAttribute('aria-label',lab);
+    b.setAttribute('aria-pressed',on);
+    b.addEventListener('click',()=>tap(i));
+    const p=document.createElement('p');
+    p.className='lab'; p.textContent=lab;
+    col.append(b,p); el.appendChild(col);
+  });
+}
 function renderPray(){
-  taps($('pray-taps'),state.prayers,['Morning','Midday','Night'],n=>{state.prayers=n; sync()});
-  $('pray-count').textContent=state.prayers;
+  toggles($('pray-taps'),state.prayers,PRAYER_LABELS,i=>{
+    state.prayers[i]=!state.prayers[i];
+    sync();
+  });
+  $('pray-count').textContent=prayerCount();
 }
 function renderRuns(){
   const update=(kind,n)=>{
@@ -1343,7 +1377,7 @@ const CLEAR_PROMPTS={
 };
 function clearModule(k){
   if(!confirm(CLEAR_PROMPTS[k])) return;
-  if(k==='p') state.prayers=0;
+  if(k==='p') state.prayers=normalizePrayers(0);
   if(k==='o') state.ideas=[];
   if(k==='w'){
     resetWriting();
@@ -1355,7 +1389,7 @@ function clearModule(k){
 document.querySelectorAll('[data-clear]').forEach(btn=>btn.addEventListener('click',()=>clearModule(btn.dataset.clear)));
 function clearDay(){
   if(!confirm("Clear today's prayers, ideas, writing, timer, and POWER completion? Weekly exercise totals, Bible progress, and saved drafts will stay.")) return;
-  state.prayers=0;
+  state.prayers=normalizePrayers(0);
   state.ideas=[];
   resetWriting();
   state.day=localDay();
@@ -1485,7 +1519,7 @@ function renderCards(){
 $('export').addEventListener('click',()=>{
   const d=new Date().toISOString().slice(0,10);
   const title=state.writeTitle.trim();
-  const md=['---',`date: ${d}`,`pray: ${state.prayers}/3`,`organize: ${state.ideas.length}/${IDEA_CAP}`,
+  const md=['---',`date: ${d}`,`pray: ${prayerCount()}/3`,`organize: ${state.ideas.length}/${IDEA_CAP}`,
     `write: ${Math.floor(state.writeSeconds/60)}m`,`runs: ${state.runs}/3`,`lifts: ${state.lifts}/3`,
     `read_next: ${BIBLE[state.bookIdx][0]} ${state.chapter}`,
     `power: ${LETTERS.filter(l=>state.done[l.k]).map(l=>l.L).join('')||'none'}`,

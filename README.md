@@ -26,7 +26,7 @@ The app never grows a reading view, a search, or an archive. Obsidian already do
 
 ## The five
 
-**Pray** — three taps, one per prayer. Morning, midday, night.
+**Pray** — morning, midday, night, each toggling on its own. Tapping Night marks Night, not all three; they are distinct times, not a running count. One prayer is enough to complete P for the day, because three is the target and one is still a day I prayed.
 
 **Organize** — the idea machine. Five slots a day. Input disables at five. Four and five are the ones worth having, which is the whole point of the number.
 
@@ -42,7 +42,7 @@ Finishing a section mutes its card without disabling it. Completed cards remain 
 
 The **POWER letters** in the header are buttons. Tap one to mark a discipline done if it happened away from the dashboard. Tap it again to bring the card back.
 
-Completion fires once, on the transition (third prayer, fifth idea, timer hitting zero). Undo sets it back to false and it stays false — it will not silently re-complete itself because the underlying count is still at three.
+Completion fires once, on the transition (first prayer, fifth idea, timer hitting zero). Undo sets it back to false and it stays false; it will not silently re-complete itself just because a prayer is still ticked.
 
 Two rollovers, on different clocks. At the first load after local midnight, all five POWER completion letters reset for the new day; entered module data and the weekly exercise totals are preserved, because a day starting fresh is not the same as a week starting fresh. At the first load in a new week, Monday, the run and lift counts clear. Either one fires on its own, so a dashboard left open across Sunday midnight still rolls the week without needing the day to change. An open dashboard also checks for a date change when it becomes visible and once per minute. **Clear day** provides a confirmed manual reset for prayers, ideas, writing, its timer, and POWER completion while preserving weekly exercise totals, Bible progress, and saved drafts.
 
