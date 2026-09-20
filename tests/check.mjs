@@ -57,6 +57,15 @@ if (!script.includes('p:()=>prayerCount()>=1')) throw new Error('One prayer shou
 if (/state\.prayers\s*>=\s*3|state\.prayers\s*=\s*0\b/.test(script)) throw new Error('Prayer is still treated as a cumulative count');
 if (!script.includes("taps($('run-taps')") || !script.includes("taps($('lift-taps')")) throw new Error('Exercise should keep the cumulative tap model');
 
+if (!script.includes("const MERGE_FIELDS=['done','seen','at','prayers']")) throw new Error('Per-key merge fields are missing');
+if (!script.includes('function mergeContainer(base,sub)') || !script.includes('function subDiff(')) throw new Error('Container merge helpers are missing');
+if (script.includes('Object.assign(state,localChanges.changes)')) throw new Error('applyCloud still replaces merge fields wholesale, which drops one device\'s letters');
+if (!script.includes('state[key]=mergeContainer(state[key],sub)')) throw new Error('Local sub-key changes are not merged over the cloud container');
+if (!/return \{changes,keyed,/.test(script)) throw new Error('diffFromBaseline does not return per-key changes');
+if (!html.includes('id="sync-blocked"') || !script.includes('function setSyncBlocked(')) throw new Error('A rejected sync has no visible banner');
+if (!script.includes('lastFocusPull') || !script.includes('startCloudSync();')) throw new Error('The tab does not re-sync when it regains focus');
+if (script.includes('Sign in through Cloudflare Access')) throw new Error('Stale status copy: a 401 here is a misconfiguration, not a sign-in prompt');
+
 const seed = fs.readFileSync(new URL('../marriage-items.js', import.meta.url), 'utf8');
 const items = new Function(seed + '; return MARRIAGE_ITEMS;')();
 if (items.length !== 35) throw new Error(`Gottman seed should hold 35 items, found ${items.length}`);

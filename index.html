@@ -301,6 +301,10 @@
   <p class="hint">Tap a letter if you did it somewhere else. Tap again to bring the card back.</p>
 </header>
 
+<div class="sync-banner hidden" id="sync-blocked" role="alert">
+  <p id="sync-blocked-text"></p>
+</div>
+
 <div class="sync-banner hidden" id="sync-conflict" role="alert">
   <p id="sync-conflict-text">A newer cloud edit conflicts with this device.</p>
   <div class="sync-actions">
@@ -591,6 +595,28 @@ rollState();
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 
+// Containers where two devices legitimately change different keys on the same day.
+// Replacing these wholesale is how checking P on one device and W on another
+// used to drop P on the floor.
+const MERGE_FIELDS=['done','seen','at','prayers'];
+function mergeContainer(base,sub){
+  if(Array.isArray(base)){
+    const out=[...base];
+    Object.entries(sub).forEach(([i,v])=>{out[Number(i)]=v});
+    return out;
+  }
+  const out={...(base||{})};
+  Object.entries(sub).forEach(([k,v])=>{ if(v===undefined) delete out[k]; else out[k]=v });
+  return out;
+}
+function subDiff(local,base){
+  const l=local||{}, b=base||{}, out={};
+  new Set([...Object.keys(l),...Object.keys(b)]).forEach(k=>{
+    if(JSON.stringify(l[k])!==JSON.stringify(b[k])) out[k]=l[k];
+  });
+  return out;
+}
+
 const SYNC_FIELDS=['prayers','runs','lifts','bookIdx','chapter','ideas','writing','writeTitle','writeSeconds','meditationVerse','chaptersToday','marriage','day','week','done','seen','at'];
 let syncInfo=store.get(SYNC_KEY)||{};
 let cloudRevision=Number.isInteger(syncInfo.revision)?syncInfo.revision:0;
@@ -616,6 +642,14 @@ function setSyncStatus(kind,label){
   $('sync-status').dataset.state=kind;
   $('sync-label').textContent=label;
 }
+// A dead sync used to show only as small grey footer text, which is how it went
+// unnoticed for days. A rejected request gets a banner and stays there.
+function setSyncBlocked(message){
+  const banner=$('sync-blocked');
+  banner.classList.toggle('hidden',!message);
+  if(message) $('sync-blocked-text').textContent=message;
+}
+const SYNC_REJECTED='Cloud sync is being rejected by the server, so nothing on this device is reaching your other devices. Cloudflare Access is not in front of this site.';
 function relativeSyncTime(value){
   if(!value) return 'Synced';
   const seconds=Math.max(0,Math.round((Date.now()-new Date(value).getTime())/1000));
@@ -624,10 +658,16 @@ function relativeSyncTime(value){
   return `Synced ${Math.floor(seconds/60)}m ago`;
 }
 function diffFromBaseline(){
-  if(!cloudBaseline) return {changes:{},chapterChanges:{},draftChanges:{},historyChanges:{},marriageChanges:{}};
-  const changes={};
+  if(!cloudBaseline) return {changes:{},keyed:{},chapterChanges:{},draftChanges:{},historyChanges:{},marriageChanges:{}};
+  const changes={}, keyed={};
   SYNC_FIELDS.forEach(key=>{
     if(JSON.stringify(state[key])!==JSON.stringify(cloudBaseline[key])) changes[key]=clone(state[key]);
+  });
+  // the wire still carries whole fields; `keyed` records only the sub-keys this
+  // device actually touched, so a merge can leave the other device's alone
+  MERGE_FIELDS.forEach(key=>{
+    const sub=subDiff(state[key],cloudBaseline[key]);
+    if(Object.keys(sub).length) keyed[key]=clone(sub);
   });
   const local=new Set(state.readChapters), base=new Set(cloudBaseline.readChapters||[]), chapterChanges={};
   local.forEach(key=>{if(!base.has(key)) chapterChanges[key]=true});
@@ -648,7 +688,7 @@ function diffFromBaseline(){
     if(JSON.stringify(r)!==JSON.stringify(baseMx.get(id)))
       marriageChanges[id]={itemIndex:r.itemIndex,pass:r.pass,text:r.text,day:r.day,savedAt:r.savedAt};
   });
-  return {changes,chapterChanges,draftChanges,historyChanges,marriageChanges};
+  return {changes,keyed,chapterChanges,draftChanges,historyChanges,marriageChanges};
 }
 function hasPatch(patch){ return Object.keys(patch.changes).length||Object.keys(patch.chapterChanges).length||Object.keys(patch.draftChanges).length||Object.keys(patch.historyChanges).length||Object.keys(patch.marriageChanges).length }
 function mirrorToday(){
@@ -680,7 +720,7 @@ async function apiSync(method,body){
   return data;
 }
 function applyCloud(cloud,preserveLocal){
-  const localChanges=preserveLocal&&cloudBaseline?diffFromBaseline():{changes:{},chapterChanges:{},draftChanges:{},historyChanges:{},marriageChanges:{}};
+  const localChanges=preserveLocal&&cloudBaseline?diffFromBaseline():{changes:{},keyed:{},chapterChanges:{},draftChanges:{},historyChanges:{},marriageChanges:{}};
   SYNC_FIELDS.forEach(key=>{if(key in cloud.state) state[key]=clone(cloud.state[key])});
   state.prayers=normalizePrayers(state.prayers);
   state.readChapters=Array.isArray(cloud.state.readChapters)?[...new Set(cloud.state.readChapters)]:[];
@@ -691,7 +731,12 @@ function applyCloud(cloud,preserveLocal){
   cloudRevision=cloud.revision;
   cloudInitialized=cloud.initialized;
   if(preserveLocal){
-    Object.assign(state,localChanges.changes);
+    Object.entries(localChanges.changes).forEach(([key,value])=>{
+      if(!MERGE_FIELDS.includes(key)) state[key]=value;
+    });
+    Object.entries(localChanges.keyed||{}).forEach(([key,sub])=>{
+      state[key]=mergeContainer(state[key],sub);
+    });
     const chapters=new Set(state.readChapters);
     Object.entries(localChanges.chapterChanges).forEach(([key,read])=>read?chapters.add(key):chapters.delete(key));
     state.readChapters=[...chapters];
@@ -708,6 +753,7 @@ function applyCloud(cloud,preserveLocal){
   rollState();
   mirrorToday();
   store.set(KEY,state); persistSyncInfo(cloud.updatedAt); buildChapters(); renderDashboard();
+  setSyncBlocked('');
   setSyncStatus('synced',relativeSyncTime(cloud.updatedAt));
 }
 async function pushCloud(force=false){
@@ -733,7 +779,10 @@ async function pushCloud(force=false){
         cloudInFlight=false;
         return pushCloud(true);
       }
-    }else setSyncStatus(navigator.onLine?'error':'offline',navigator.onLine?'Sync unavailable · changes queued':'Offline · changes queued');
+    }else{
+      if(error.status===401) setSyncBlocked(SYNC_REJECTED);
+      setSyncStatus(navigator.onLine?'error':'offline',navigator.onLine?'Sync unavailable · changes queued':'Offline · changes queued');
+    }
   }finally{cloudInFlight=false}
 }
 async function initializeCloud(){
@@ -750,7 +799,8 @@ async function initializeCloud(){
     const result=await apiSync('PATCH',{requestId:requestId(),baseRevision:0,initialize:true,changes,chapterChanges,draftChanges,historyChanges,marriageChanges});
     applyCloud(result,false); $('sync-init').classList.add('hidden');
   }catch(error){
-    setSyncStatus('error',error.status===401?'Sign in through Cloudflare Access':'Initialization failed · try again');
+    if(error.status===401) setSyncBlocked(SYNC_REJECTED);
+    setSyncStatus('error',error.status===401?'Rejected · sync not set up':'Initialization failed · try again');
   }finally{cloudInFlight=false; $('sync-init').disabled=false}
 }
 async function startCloudSync(){
@@ -765,7 +815,8 @@ async function startCloudSync(){
     $('sync-init').classList.add('hidden'); applyCloud(cloud,!!cloudBaseline);
     if(hasPatch(diffFromBaseline())) scheduleCloudSync();
   }catch(error){
-    setSyncStatus(error.status===401?'error':'offline',error.status===401?'Sign in through Cloudflare Access':'Cloud unavailable · using local copy');
+    if(error.status===401) setSyncBlocked(SYNC_REJECTED);
+    setSyncStatus(error.status===401?'error':'offline',error.status===401?'Rejected · sync not set up':'Cloud unavailable · using local copy');
   }
 }
 
@@ -1599,8 +1650,15 @@ startCloudSync();
 setInterval(()=>{
   if(rollState()){renderDashboard(); save()}
 },60000);
+let lastFocusPull=0;
 document.addEventListener('visibilitychange',()=>{
-  if(!document.hidden&&rollState()){renderDashboard(); save()}
+  if(document.hidden) return;
+  if(rollState()){renderDashboard(); save()}
+  // coming back to an open tab should show what the other device did
+  if(cloudInitialized&&Date.now()-lastFocusPull>15000){
+    lastFocusPull=Date.now();
+    startCloudSync();
+  }
 });
 </script>
 </body>

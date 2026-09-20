@@ -84,6 +84,10 @@ The 35 items live in `marriage-items.js`, transcribed verbatim and carrying no t
 
 The app writes immediately to `localStorage` under `power.v2`, with an in-memory fallback when storage is unavailable. Each day gets one record in `history`, keyed `YYYY-MM-DD`, holding the five completion letters plus that day's idea count, seconds written, and chapters read. Today's record is mirrored out of live state on every save, so the week view and the streaks read one source. That local copy renders first and remains usable offline. The same-origin `/api/sync` Pages Function then exchanges field-level changes, Bible chapters, and independently keyed writing drafts with D1; queued edits replay when the browser comes back online.
 
+On load, and whenever the tab regains focus, the app pulls the cloud copy before pushing its own, so coming back to a tab left open on one device shows what the other device did. Focus pulls are throttled to one every fifteen seconds.
+
+`done`, `seen`, `at` and `prayers` are single fields holding several keys each, and two devices legitimately change different keys of them on the same day. They merge per key rather than per field: the cloud copy is taken and only the sub-keys this device actually changed are laid on top. Without that, checking P on the desktop and W on the phone left whichever pushed last as the only survivor, silently, while the footer read "Synced just now". Merging is last-write-wins per key, not a union, so un-checking a letter still propagates.
+
 Dashboard fields, Bible chapters, drafts, **each history day**, and **each marriage response** have independent server revisions, so edits to different items merge without replacing the whole state. History is deliberately not one blob field: a blob would let one device's offline edits clobber the other device's entire history on the automatic conflict retry, where a per-day row can only ever lose the one day both devices touched. Repeated requests are idempotent. If writing or ideas changed on two devices from the same base revision, the app asks whether to keep this device or use the cloud copy.
 
 The first deployment starts with an empty D1 database. On the desktop holding the authoritative `power.v2` state, select **Use this device to initialize sync** once. Other devices then adopt that cloud state after passing Cloudflare Access.
@@ -139,11 +143,15 @@ npm run dev
 
 `wrangler.jsonc` is the Pages project configuration source of truth. The migration is in `migrations/0001_sync.sql`.
 
-### Lock it down
+### Access is required, not optional
 
-The page carries `noindex`, which keeps it out of search results and out of nothing else. It holds prayer counts, unedited writing, and raw ideas.
+**Sync does not work until Cloudflare Access is in front of the hostname.** This is not hardening you can defer. `authenticated()` in `functions/api/sync.js` requires the `cf-access-jwt-assertion` header, and only Access injects it. Without Access every request to `/api/sync` returns 401, from every device, and the initialize button cannot succeed no matter how many times it is pressed. This was the state of the deployed app for its first weeks, and the only symptom was small grey footer text.
 
-Put Cloudflare Access in front of the entire hostname, including `/api/sync`: Zero Trust → Access → Applications → self-hosted → allow policy on one email address. Protect the production custom domain and any Pages preview domain you intend to use; the function rejects requests that do not carry the Access assertion.
+Zero Trust → Access → Applications → self-hosted → application domain `dash.biv.xyz` with the path left empty so it covers `/api/sync` → allow policy on one email address → one-time PIN.
+
+The function fails closed, so the `pages.dev` origin will keep rejecting rather than leaking. That also means the production custom domain is the only usable URL. `localhost` is exempt, so local development is unaffected.
+
+The page itself carries `noindex`, which keeps it out of search results and out of nothing else. Access is what actually keeps it private, and what makes the prayer counts, unedited writing and raw ideas reachable only by you.
 
 ---
 
