@@ -58,7 +58,7 @@ for (let w = 1; w <= 7; w++) {
   if (n !== 5) throw new Error(`Week ${w} should hold 5 items, found ${n}`);
 }
 if (items.some(item => !item.belief || !item.task)) throw new Error('Every item needs a separate belief and task');
-if (items.filter(item => item.type === 'date').length !== 8) throw new Error('Expected 8 date-type items');
+if (items.some(item => item.type)) throw new Error('Seed items should carry no type tag; date ideas are entered by hand');
 if (!/personal use/i.test(seed) || !/[Nn]ot for distribution/.test(seed) || !/Gottman/.test(seed)) throw new Error('Seed file is missing its personal-use licence notice');
 
 if (!html.includes('data-view="marriage"') || !html.includes('id="view-marriage"')) throw new Error('Marriage tab is missing');
@@ -66,11 +66,17 @@ if (!html.includes('marriage-items.js')) throw new Error('Seed file is not loade
 if (!script.includes('function renderMarriage()') || !script.includes('function rollMarriage()')) throw new Error('Marriage rendering or daily advance is missing');
 if (!script.includes('function saveMarriageResponse()') || !html.includes('id="mx-response"')) throw new Error('Response capture is missing');
 if (!html.includes('id="mx-history-list"') || !script.includes('function renderMarriageHistory()')) throw new Error('Response history is missing');
-if (!script.includes('function monthOptions(key)') || !script.includes('MX_DATE_INDEXES')) throw new Error('Monthly date night is missing');
+if (script.includes('MX_DATE_INDEXES') || script.includes('function monthOptions')) throw new Error('Gottman date rotation should be gone');
+if (!html.includes('id="mx-idea-input"') || !html.includes('id="mx-pool"') || !html.includes('id="mx-slots"')) throw new Error('Date idea pool or shortlist markup is missing');
+if (!script.includes('function addDateIdea()') || !script.includes('function slotIdea(id,slot)') || !script.includes('function unslotIdea(slot)')) throw new Error('Date idea capture or shortlisting is missing');
+if (!script.includes('function dateNights()') || !script.includes('function mxDateEntry(')) throw new Error('Date nights do not reach the history tab');
+if (!script.includes("addEventListener('pointerdown',startIdeaDrag)") || !script.includes('setPointerCapture')) throw new Error('Idea dragging is not built on pointer events');
+if (/\bdragstart\b|\bdropEffect\b|\bdataTransfer\b/.test(script)) throw new Error('HTML5 drag-and-drop does not fire on touch; use pointer events');
+if (!/touch-action:\s*none/.test(html)) throw new Error('Drag handle needs touch-action:none or the phone will scroll instead of dragging');
 if (!script.includes('marriageChanges') || !sync.includes('sync_marriage')) throw new Error('Marriage responses are not synchronized');
 if (!script.includes("'chaptersToday','marriage'")) throw new Error('Marriage state is not in the sync field list');
 
-const mxLogic = script.slice(script.indexOf('const MX_DATE_INDEXES'), script.indexOf('function renderMeter()'));
+const mxLogic = script.slice(script.indexOf('const MX_SLOTS='), script.indexOf('function renderMeter()'));
 const mxListeners = script.slice(script.indexOf("$('mx-save').addEventListener"), script.indexOf("document.querySelectorAll('.tab')"));
 const mxMarkup = html.slice(html.indexOf('id="view-marriage"'), html.indexOf('id="view-bible"'));
 if (!mxLogic || !mxListeners || !mxMarkup) throw new Error('Could not isolate the marriage feature for its content checks');

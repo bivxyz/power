@@ -7,7 +7,7 @@
 
    35 items, five per week, seven weeks, in the printed order.
    belief = the relationship-enhancing thought. task = what to do that day.
-   type "date" marks the eight action items eligible for monthly date night. */
+   These are prompts for reflection. Date-night ideas are entered by hand in the app. */
 
 const MARRIAGE_ITEMS = [
   // Week 1
@@ -41,21 +41,21 @@ const MARRIAGE_ITEMS = [
   // Week 5
   {week: 5, belief: "I was lucky to meet my partner.", task: "List one benefit being with your partner conveys to you."},
   {week: 5, belief: "Relationships are sometimes a struggle, but it’s worth it.", task: "Think of one difficult time you weathered together."},
-  {week: 5, belief: "There is a lot of affection between us.", task: "Plan a surprise gift for your partner for tonight.", type: "date"},
+  {week: 5, belief: "There is a lot of affection between us.", task: "Plan a surprise gift for your partner for tonight."},
   {week: 5, belief: "We are genuinely interested in one another.", task: "Think of something to do or to talk about together that would be interesting."},
-  {week: 5, belief: "We find one another to be good companions.", task: "Plan an outing together.", type: "date"},
+  {week: 5, belief: "We find one another to be good companions.", task: "Plan an outing together."},
 
   // Week 6
   {week: 6, belief: "There is lots of good loving in my relationship.", task: "Think of a special trip you took together."},
-  {week: 6, belief: "My partner is an interesting person.", task: "Plan something to ask your partner about that interests both of you.", type: "date"},
+  {week: 6, belief: "My partner is an interesting person.", task: "Plan something to ask your partner about that interests both of you."},
   {week: 6, belief: "We respond well to one another.", task: "Write a love letter to your partner and mail it."},
-  {week: 6, belief: "If I had it to do over again, I would be involved with or marry the same person.", task: "Plan an anniversary (or other) getaway.", type: "date"},
-  {week: 6, belief: "There is lots of mutual respect in my relationship.", task: "Take a class together.", type: "date"},
+  {week: 6, belief: "If I had it to do over again, I would be involved with or marry the same person.", task: "Plan an anniversary (or other) getaway."},
+  {week: 6, belief: "There is lots of mutual respect in my relationship.", task: "Take a class together."},
 
   // Week 7
-  {week: 7, belief: "Sex is usually quite satisfying in this relationship.", task: "Plan an evening of massage.", type: "date"},
+  {week: 7, belief: "Sex is usually quite satisfying in this relationship.", task: "Plan an evening of massage."},
   {week: 7, belief: "We have come a long way together.", task: "Think of all you have accomplished as a team."},
   {week: 7, belief: "I think we can weather any storm together.", task: "Reminisce about having made it through a hard time."},
-  {week: 7, belief: "We enjoy each other’s senses of humor.", task: "Rent a comedy video, and watch it together.", type: "date"},
-  {week: 7, belief: "My partner can be very cute.", task: "Get very dressed up for an elegant evening together.", type: "date"}
+  {week: 7, belief: "We enjoy each other’s senses of humor.", task: "Rent a comedy video, and watch it together."},
+  {week: 7, belief: "My partner can be very cute.", task: "Get very dressed up for an elegant evening together."}
 ];

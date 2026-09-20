@@ -183,6 +183,28 @@
   .mx-option.chosen{border-color:var(--gold)}
   .mx-option .mx-task{font-size:23px}
   .mx-option .button-group{margin-top:13px}
+  .mx-slots{display:grid; gap:10px; margin-top:14px}
+  .mx-slot{padding:16px 18px; border:1px dashed var(--line2); border-radius:11px; min-height:64px;
+        display:flex; flex-direction:column; justify-content:center; transition:border-color .16s, background-color .16s}
+  .mx-slot.filled{border-style:solid; background:var(--control)}
+  .mx-slot.chosen{border-color:var(--gold)}
+  .mx-slot.over{border-color:var(--gold); background:#211b11}
+  .mx-slot-empty{font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--dim)}
+  .mx-slot .mx-task{font-size:21px}
+  .mx-slot .button-group{margin-top:12px}
+  .mx-pool-head{margin-top:26px; padding-top:18px; border-top:1px solid var(--line)}
+  .mx-pool li{align-items:center; gap:10px; flex-wrap:wrap}
+  .mx-pool .grip{flex:0 0 auto; cursor:grab; touch-action:none; color:var(--dim); font-size:15px;
+        padding:2px 4px; border-radius:5px; user-select:none; -webkit-user-select:none}
+  .mx-pool .grip:hover{color:var(--gold)}
+  .mx-pool .txt{flex:1 1 150px; min-width:0; cursor:pointer}
+  .mx-pool li.used{opacity:.45}
+  .mx-pool li.used .grip{cursor:default; color:var(--line2)}
+  .mx-pool .when-used{font-family:var(--mono); font-size:10px; color:var(--dim); white-space:nowrap; margin-left:auto}
+  .mx-pool .kill{flex:0 0 auto; padding:4px 8px; font-size:10px}
+  .mx-drag{position:fixed; z-index:50; pointer-events:none; padding:9px 13px; border-radius:9px;
+        background:var(--gold); color:#000; font-family:var(--mono); font-size:12px; max-width:280px;
+        overflow:hidden; text-overflow:ellipsis; white-space:nowrap; box-shadow:0 6px 18px rgba(0,0,0,.45)}
   .mx-picked{margin-top:18px; padding-top:16px; border-top:1px solid var(--line)}
   .mx-fields{display:grid; grid-template-columns:1fr 160px; gap:9px; margin-top:11px}
   .mx-fields textarea{grid-column:1/-1}
@@ -402,7 +424,14 @@
 
       <section id="mx-date" class="hidden">
         <p class="eyebrow" id="mx-month"></p>
-        <div class="mx-options" id="mx-options"></div>
+        <div class="mx-slots" id="mx-slots"></div>
+        <p class="eyebrow mx-pool-head">Ideas</p>
+        <div class="row">
+          <input id="mx-idea-input" type="text" aria-label="New date idea">
+          <button class="btn solid" id="mx-idea-add" type="button">Add</button>
+        </div>
+        <ol class="ideas mx-pool" id="mx-pool"></ol>
+        <p class="empty" id="mx-pool-empty">Nothing yet. Write down the next one you think of, before you forget it.</p>
         <div class="mx-picked hidden" id="mx-picked">
           <p class="eyebrow">What we did</p>
           <div class="mx-fields">
@@ -473,7 +502,7 @@ const weekStart=(d=new Date())=>{const m=new Date(d); m.setDate(m.getDate()-((m.
 const DEFAULTS={
   prayers:0, runs:0, lifts:0, bookIdx:40, chapter:4, readChapters:[], drafts:[], ideas:[], writing:'', writeTitle:'', writeSeconds:0,
   meditationVerse:null, chaptersToday:0, history:{},
-  marriage:{index:0, pass:1, answeredOn:null, dates:[]}, marriageResponses:[],
+  marriage:{index:0, pass:1, answeredOn:null, ideas:[], dates:[]}, marriageResponses:[],
   day:null, week:null,
   done:{p:false,o:false,w:false,e:false,r:false},
   seen:{p:false,o:false,w:false,e:false,r:false},
@@ -495,7 +524,10 @@ const state={
   drafts:Array.isArray(saved.drafts)?saved.drafts:[],
   history:saved.history&&typeof saved.history==='object'&&!Array.isArray(saved.history)?{...saved.history}:{},
   marriage:{...DEFAULTS.marriage, ...(saved.marriage||{}),
-    dates:Array.isArray(saved.marriage&&saved.marriage.dates)?saved.marriage.dates:[]},
+    ideas:Array.isArray(saved.marriage&&saved.marriage.ideas)?saved.marriage.ideas:[],
+    // date records predating the idea pool keyed options/chosen by Gottman index; drop them
+    dates:(Array.isArray(saved.marriage&&saved.marriage.dates)?saved.marriage.dates:[])
+      .filter(d=>d&&Array.isArray(d.queue)&&typeof d.chosen!=='number')},
   marriageResponses:Array.isArray(saved.marriageResponses)?saved.marriageResponses:[],
   done:{...DEFAULTS.done, ...(saved.done||{})},
   seen:{...DEFAULTS.seen, ...(saved.seen||{})},
@@ -836,16 +868,80 @@ function renderWeek(){
   $('streak-best').textContent=best.n?`longest: ${best.name}, ${best.n} day${best.n===1?'':'s'}`:'no streak yet';
 }
 
-const MX_DATE_INDEXES=MARRIAGE_ITEMS.reduce((out,item,i)=>{if(item.type==='date') out.push(i); return out},[]);
+const MX_SLOTS=3;
 const monthKey=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+const monthLabel=key=>parseDay(key+'-01').toLocaleDateString('en-US',{month:'long',year:'numeric'});
 let mxHistoryMode='date';
 
-function monthOptions(key){
-  const [y,m]=key.split('-').map(Number);
-  const n=MX_DATE_INDEXES.length, start=((y*12+(m-1))*3)%n;
-  return [0,1,2].map(i=>MX_DATE_INDEXES[(start+i)%n]);
-}
 function dateRecord(key){ return state.marriage.dates.find(d=>d.monthKey===key)||null }
+function ensureDateRecord(key){
+  let rec=dateRecord(key);
+  if(!rec){ rec={monthKey:key,queue:[],chosen:null,note:'',when:''}; state.marriage.dates.push(rec) }
+  normalizeQueue(rec);
+  return rec;
+}
+// Always exactly MX_SLOTS entries, null for empty. Dropping into slot 2 of an empty
+// shortlist would otherwise leave holes, which JSON turns into nulls anyway.
+function normalizeQueue(rec){
+  const q=Array.isArray(rec.queue)?rec.queue:[];
+  rec.queue=Array.from({length:MX_SLOTS},(_,i)=>q[i]||null);
+  return rec.queue;
+}
+function ideaById(id){ return id?state.marriage.ideas.find(i=>i.id===id)||null:null }
+function clearPick(rec){
+  const idea=ideaById(rec.chosen);
+  if(idea&&idea.usedOn===rec.monthKey) idea.usedOn=null;
+  rec.chosen=null; rec.note=''; rec.when='';
+}
+function addDateIdea(){
+  const el=$('mx-idea-input'), v=el.value.trim();
+  if(!v) return;
+  state.marriage.ideas.push({id:requestId(),text:v,addedAt:new Date().toISOString(),usedOn:null});
+  el.value='';
+  sync();
+  el.focus();
+}
+function deleteDateIdea(id){
+  const idea=ideaById(id);
+  if(!idea||!confirm('Delete this date idea?')) return;
+  state.marriage.ideas=state.marriage.ideas.filter(i=>i.id!==id);
+  state.marriage.dates.forEach(rec=>{
+    const q=normalizeQueue(rec);
+    q.forEach((entry,i)=>{ if(entry===id) q[i]=null });
+    if(rec.chosen===id){ rec.chosen=null; rec.note=''; rec.when='' }
+  });
+  sync();
+}
+function slotIdea(id,slot){
+  if(!ideaById(id)) return;
+  const rec=ensureDateRecord(monthKey()), q=rec.queue;
+  if(q.includes(id)) return;
+  const target=Number.isInteger(slot)&&slot>=0&&slot<MX_SLOTS?slot:q.indexOf(null);
+  if(target<0) return;
+  const displaced=q[target];
+  q[target]=id;
+  if(displaced&&rec.chosen===displaced) clearPick(rec);
+  sync();
+}
+function unslotIdea(slot){
+  const rec=dateRecord(monthKey());
+  if(!rec) return;
+  const q=normalizeQueue(rec), id=q[slot];
+  if(!id) return;
+  q[slot]=null;
+  if(rec.chosen===id) clearPick(rec);
+  sync();
+}
+function pickDate(id){
+  const rec=ensureDateRecord(monthKey());
+  if(rec.chosen===id){ clearPick(rec); sync(); return }
+  if(rec.chosen) clearPick(rec);
+  rec.chosen=id;
+  const idea=ideaById(id);
+  if(idea) idea.usedOn=rec.monthKey;
+  sync();
+}
+
 function currentResponse(){
   const m=state.marriage;
   return state.marriageResponses.find(r=>r.pass===m.pass&&r.itemIndex===m.index)||null;
@@ -857,13 +953,6 @@ function saveMarriageResponse(){
   if(existing){ existing.text=text; existing.savedAt=new Date().toISOString() }
   else state.marriageResponses.push({id:requestId(),itemIndex:m.index,pass:m.pass,text,day,savedAt:new Date().toISOString()});
   m.answeredOn=day;
-  sync();
-}
-function pickDate(index){
-  const key=monthKey();
-  let rec=dateRecord(key);
-  if(!rec){ rec={monthKey:key,options:monthOptions(key),chosen:null,note:'',when:''}; state.marriage.dates.push(rec) }
-  rec.chosen=rec.chosen===index?null:index;
   sync();
 }
 
@@ -880,26 +969,104 @@ function renderMarriagePrompt(){
 }
 
 function renderMarriageDate(){
-  const key=monthKey(), rec=dateRecord(key);
-  const options=rec&&Array.isArray(rec.options)&&rec.options.length?rec.options:monthOptions(key);
-  $('mx-month').textContent=`${parseDay(key+'-01').toLocaleDateString('en-US',{month:'long',year:'numeric'})} · pick one`;
-  $('mx-options').innerHTML=options.map(i=>{
-    const item=MARRIAGE_ITEMS[i], chosen=rec&&rec.chosen===i;
-    return `<div class="mx-option${chosen?' chosen':''}">
-      <p class="mx-task">${esc(item.task)}</p>
-      <p class="mx-belief">${esc(item.belief)}</p>
-      <span class="button-group"><button class="btn${chosen?' on':''}" type="button" data-pick="${i}">${chosen?'Picked':'We picked this'}</button></span>
-    </div>`;
+  const key=monthKey(), rec=dateRecord(key), queue=rec?normalizeQueue(rec):[];
+  $('mx-month').textContent=`${monthLabel(key)} · shortlist three, pick one`;
+
+  $('mx-slots').innerHTML=Array.from({length:MX_SLOTS},(_,slot)=>{
+    const idea=ideaById(queue[slot]);
+    if(!idea) return `<div class="mx-slot" data-slot="${slot}"><p class="mx-slot-empty">Drag an idea here</p></div>`;
+    const chosen=rec&&rec.chosen===idea.id;
+    return `<div class="mx-slot filled${chosen?' chosen':''}" data-slot="${slot}">
+      <p class="mx-task">${esc(idea.text)}</p>
+      <span class="button-group">
+        <button class="btn${chosen?' on':''}" type="button" data-pick="${idea.id}">${chosen?'Picked':'We picked this'}</button>
+        <button class="btn danger" type="button" data-unslot="${slot}">Remove</button>
+      </span></div>`;
   }).join('');
-  $('mx-options').querySelectorAll('[data-pick]').forEach(btn=>
-    btn.addEventListener('click',()=>pickDate(Number(btn.dataset.pick))));
-  const picked=rec&&rec.chosen!==null&&rec.chosen!==undefined;
+  $('mx-slots').querySelectorAll('[data-pick]').forEach(b=>b.addEventListener('click',()=>pickDate(b.dataset.pick)));
+  $('mx-slots').querySelectorAll('[data-unslot]').forEach(b=>b.addEventListener('click',()=>unslotIdea(Number(b.dataset.unslot))));
+
+  const ideas=state.marriage.ideas;
+  $('mx-pool-empty').classList.toggle('hidden',ideas.length>0);
+  $('mx-pool').innerHTML=ideas.map((idea,i)=>{
+    const inQueue=queue.includes(idea.id);
+    return `<li class="${idea.usedOn?'used':''}" data-idea="${idea.id}">
+      <span class="n">${String(i+1).padStart(2,'0')}</span>
+      <span class="grip" data-grip="${idea.id}" aria-hidden="true">⠿</span>
+      <span class="txt" data-send="${idea.id}" role="button" tabindex="0"
+        title="${inQueue?'Already shortlisted':'Send to the shortlist'}">${esc(idea.text)}</span>
+      ${idea.usedOn?`<span class="when-used">used ${esc(monthLabel(idea.usedOn))}</span>`:''}
+      <button class="btn danger kill" type="button" data-kill="${idea.id}" aria-label="Delete idea">Delete</button>
+    </li>`;
+  }).join('');
+  $('mx-pool').querySelectorAll('[data-kill]').forEach(b=>b.addEventListener('click',()=>deleteDateIdea(b.dataset.kill)));
+  $('mx-pool').querySelectorAll('[data-send]').forEach(el=>{
+    const send=()=>slotIdea(el.dataset.send);
+    el.addEventListener('click',send);
+    el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault(); send()}});
+  });
+  $('mx-pool').querySelectorAll('[data-grip]').forEach(g=>g.addEventListener('pointerdown',startIdeaDrag));
+
+  const picked=Boolean(rec&&rec.chosen&&ideaById(rec.chosen));
   $('mx-picked').classList.toggle('hidden',!picked);
   if(picked){
     if(document.activeElement!==$('mx-note')) $('mx-note').value=rec.note||'';
     if(document.activeElement!==$('mx-when')) $('mx-when').value=rec.when||'';
   }
 }
+
+// Pointer Events, not HTML5 drag-and-drop: native DnD never fires on touch,
+// so a phone would have been left with no way to shortlist an idea.
+let mxDrag=null;
+function slotUnder(x,y){
+  return document.elementFromPoint(x,y)?.closest('.mx-slot')||null;
+}
+function startIdeaDrag(event){
+  if(event.button>0) return;
+  const id=event.currentTarget.dataset.grip, idea=ideaById(id);
+  if(!idea) return;
+  event.preventDefault();
+  event.currentTarget.setPointerCapture(event.pointerId);
+  const ghost=document.createElement('div');
+  ghost.className='mx-drag';
+  ghost.textContent=idea.text;
+  document.body.appendChild(ghost);
+  mxDrag={id, ghost, grip:event.currentTarget, pointerId:event.pointerId, over:null};
+  moveIdeaDrag(event);
+  event.currentTarget.addEventListener('pointermove',moveIdeaDrag);
+  event.currentTarget.addEventListener('pointerup',endIdeaDrag);
+  event.currentTarget.addEventListener('pointercancel',cancelIdeaDrag);
+}
+function moveIdeaDrag(event){
+  if(!mxDrag) return;
+  mxDrag.ghost.style.left=(event.clientX+12)+'px';
+  mxDrag.ghost.style.top=(event.clientY-14)+'px';
+  const slot=slotUnder(event.clientX,event.clientY);
+  if(mxDrag.over!==slot){
+    mxDrag.over?.classList.remove('over');
+    slot?.classList.add('over');
+    mxDrag.over=slot;
+  }
+}
+function teardownIdeaDrag(){
+  if(!mxDrag) return null;
+  const {ghost,grip,over,id,pointerId}=mxDrag;
+  ghost.remove();
+  over?.classList.remove('over');
+  grip.removeEventListener('pointermove',moveIdeaDrag);
+  grip.removeEventListener('pointerup',endIdeaDrag);
+  grip.removeEventListener('pointercancel',cancelIdeaDrag);
+  try{ grip.releasePointerCapture(pointerId) }catch{}
+  mxDrag=null;
+  return {over,id};
+}
+function endIdeaDrag(){
+  const done=teardownIdeaDrag();
+  if(!done) return;
+  if(done.over) slotIdea(done.id,Number(done.over.dataset.slot));
+  else renderMarriageDate();
+}
+function cancelIdeaDrag(){ if(teardownIdeaDrag()) renderMarriageDate() }
 
 function mxEntry(r){
   const item=MARRIAGE_ITEMS[r.itemIndex];
@@ -910,15 +1077,32 @@ function mxEntry(r){
     <p class="mx-entry-text">${esc(r.text)}</p>
   </div>`;
 }
+function dateNights(){
+  return state.marriage.dates
+    .filter(rec=>rec.chosen&&ideaById(rec.chosen))
+    .map(rec=>({rec, idea:ideaById(rec.chosen), sortKey:rec.when||`${rec.monthKey}-01`}));
+}
+function mxDateEntry({rec,idea}){
+  const when=rec.when?parseDay(rec.when).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):monthLabel(rec.monthKey);
+  return `<div class="mx-entry">
+    <p class="mx-entry-meta">${esc(when)} · date night</p>
+    <p class="mx-entry-task">${esc(idea.text)}</p>
+    ${rec.note?`<p class="mx-entry-text">${esc(rec.note)}</p>`:''}
+  </div>`;
+}
 function renderMarriageHistory(){
-  const all=state.marriageResponses;
-  $('mx-history-count').textContent=`${all.length} ${all.length===1?'response':'responses'}`;
-  $('mx-history-empty').classList.toggle('hidden',all.length>0);
+  const all=state.marriageResponses, nights=dateNights(), total=all.length+nights.length;
+  $('mx-history-count').textContent=`${all.length} ${all.length===1?'response':'responses'} · ${nights.length} date ${nights.length===1?'night':'nights'}`;
+  $('mx-history-empty').classList.toggle('hidden',total>0);
   $('mx-by-date').classList.toggle('on',mxHistoryMode==='date');
   $('mx-by-prompt').classList.toggle('on',mxHistoryMode==='prompt');
-  if(!all.length){ $('mx-history-list').innerHTML=''; return }
+  if(!total){ $('mx-history-list').innerHTML=''; return }
   if(mxHistoryMode==='date'){
-    $('mx-history-list').innerHTML=[...all].sort((a,b)=>b.savedAt.localeCompare(a.savedAt)).map(mxEntry).join('');
+    const rows=[
+      ...all.map(r=>({sortKey:r.day,html:mxEntry(r)})),
+      ...nights.map(n=>({sortKey:n.sortKey,html:mxDateEntry(n)}))
+    ].sort((a,b)=>b.sortKey.localeCompare(a.sortKey));
+    $('mx-history-list').innerHTML=rows.map(r=>r.html).join('');
     return;
   }
   const byItem=new Map();
@@ -928,6 +1112,10 @@ function renderMarriageHistory(){
     const item=MARRIAGE_ITEMS[index];
     return `<section class="mx-group"><p class="mx-group-title">Week ${item?item.week:'?'} · ${index+1} of ${MARRIAGE_ITEMS.length} · answered ${rows.length}×</p>${rows.map(mxEntry).join('')}</section>`;
   }).join('');
+  if(nights.length){
+    const sorted=[...nights].sort((a,b)=>b.sortKey.localeCompare(a.sortKey));
+    $('mx-history-list').innerHTML+=`<section class="mx-group"><p class="mx-group-title">Date nights · ${sorted.length}</p>${sorted.map(mxDateEntry).join('')}</section>`;
+  }
 }
 function renderMarriage(){ renderMarriagePrompt(); renderMarriageDate(); renderMarriageHistory() }
 
@@ -1325,13 +1513,15 @@ window.addEventListener('online',()=>{setSyncStatus('syncing','Back online · sy
 window.addEventListener('offline',()=>setSyncStatus('offline','Offline · changes queued'));
 
 $('mx-save').addEventListener('click',saveMarriageResponse);
+$('mx-idea-add').addEventListener('click',addDateIdea);
+$('mx-idea-input').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); addDateIdea()}});
 $('mx-note').addEventListener('input',e=>{
   const rec=dateRecord(monthKey()); if(!rec) return;
   rec.note=e.target.value; save();
 });
 $('mx-when').addEventListener('change',e=>{
   const rec=dateRecord(monthKey()); if(!rec) return;
-  rec.when=e.target.value; save();
+  rec.when=e.target.value; sync();
 });
 $('mx-unpick').addEventListener('click',()=>{
   const rec=dateRecord(monthKey());
@@ -1345,6 +1535,7 @@ document.querySelectorAll('.mx-tab').forEach(tab=>{
   tab.addEventListener('click',()=>{
     document.querySelectorAll('.mx-tab').forEach(t=>t.setAttribute('aria-selected',t===tab));
     ['prompt','date','history'].forEach(v=>$('mx-'+v).classList.toggle('hidden',tab.dataset.mx!==v));
+    renderMarriage();
   });
 });
 

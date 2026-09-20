@@ -70,11 +70,13 @@ It also never writes anything to send. There is no drafting of messages, no comp
 
 **Prompt.** One item a day from the Gottman 7-week fondness and admiration exercise, in the printed order. The task shows big, the belief statement sits under it as the subhead, and one box takes the response. Saving records it and holds the day; the next item appears tomorrow, not on a second save.
 
-**Date night.** Eight of the 35 items are action items, tagged `type: "date"` in the seed. Once a month three of them surface as options, on a deterministic rotation keyed to the month, so the set changes month to month and is stable within one. Picking one opens a note and a date field.
+**Date night.** The Gottman items are prompts, not date ideas, so the ideas here are mine. A text field takes them the way Organize does, and they collect in a pool that persists. Each month I drag three out of the pool into a shortlist, pick one, and note how it went and when. A picked idea is marked with the month it was used and dimmed in the pool rather than deleted, because it still has to render in History.
 
-**History.** Every response is kept. After item 35 the cycle restarts at item 1 with a blank box and a new pass number, so a reprise never shows the old answer in place. History sorts by date, or groups by prompt to put successive passes at the same item side by side.
+Dragging is built on pointer events rather than HTML5 drag-and-drop, which never fires on touch and would have left the feature dead on a phone. Tapping an idea sends it to the first free slot, for when a drag misses.
 
-The 35 items live in `marriage-items.js`, transcribed verbatim. That text is copyright Dr. John M. Gottman and Dr. Julie Schwartz Gottman, distributed under license by The Gottman Institute. It is here for personal use on one private dashboard, not for distribution.
+**History.** Every response is kept, and each month's picked date night lands there too, with its note and the date we went. After item 35 the cycle restarts at item 1 with a blank box and a new pass number, so a reprise never shows the old answer in place. History sorts by date, mixing responses and date nights, or groups by prompt with the date nights collected under one heading.
+
+The 35 items live in `marriage-items.js`, transcribed verbatim and carrying no tags of my own. That text is copyright Dr. John M. Gottman and Dr. Julie Schwartz Gottman, distributed under license by The Gottman Institute. It is here for personal use on one private dashboard, not for distribution.
 
 ---
 
