@@ -50,6 +50,13 @@ if (!script.includes('function rollWeeklyState()') || !script.includes('function
 if (!script.includes('state.runs=0;\n  state.lifts=0;')) throw new Error('Weekly rollover does not clear the exercise counts');
 if (/rollDailyState\(\)/.test(script.replace(/function rollDailyState\(\)/, '').replace('const rolledDay=rollDailyState();', ''))) throw new Error('A rollDailyState call bypasses the weekly rollover');
 
+if (!script.includes('function toggles(') || !script.includes('toggles($(\'pray-taps\')')) throw new Error('Prayer slots are not independent toggles');
+if (!script.includes('function normalizePrayers(') || !script.includes('prayers:normalizePrayers(saved.prayers)')) throw new Error('Legacy prayer counts are not converted on load');
+if (!script.includes('state.prayers=normalizePrayers(state.prayers)')) throw new Error('A legacy prayer count from the cloud is not converted');
+if (!script.includes('p:()=>prayerCount()>=1')) throw new Error('One prayer should be enough to complete P');
+if (/state\.prayers\s*>=\s*3|state\.prayers\s*=\s*0\b/.test(script)) throw new Error('Prayer is still treated as a cumulative count');
+if (!script.includes("taps($('run-taps')") || !script.includes("taps($('lift-taps')")) throw new Error('Exercise should keep the cumulative tap model');
+
 const seed = fs.readFileSync(new URL('../marriage-items.js', import.meta.url), 'utf8');
 const items = new Function(seed + '; return MARRIAGE_ITEMS;')();
 if (items.length !== 35) throw new Error(`Gottman seed should hold 35 items, found ${items.length}`);
