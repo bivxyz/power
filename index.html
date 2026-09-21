@@ -650,6 +650,8 @@ function setSyncBlocked(message){
   if(message) $('sync-blocked-text').textContent=message;
 }
 const SYNC_REJECTED='Cloud sync is being rejected by the server, so nothing on this device is reaching your other devices. Cloudflare Access is not in front of this site.';
+const SYNC_EXPIRED='Your Cloudflare Access session has expired. Reload the page to sign in again. Until you do, nothing on this device is syncing.';
+const rejectionMessage=error=>error.needsLogin?SYNC_EXPIRED:SYNC_REJECTED;
 function relativeSyncTime(value){
   if(!value) return 'Synced';
   const seconds=Math.max(0,Math.round((Date.now()-new Date(value).getTime())/1000));
@@ -713,7 +715,17 @@ function requestId(){
   return self.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 async function apiSync(method,body){
-  const response=await fetch('/api/sync',{method,headers:body?{'content-type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
+  // An expired Cloudflare Access session answers with a cross-origin 302 to the login
+  // page. Following it fails CORS and surfaces as a bare TypeError, indistinguishable
+  // from the network being down, which is how a dead sync hides. redirect:'manual'
+  // turns that into an opaqueredirect we can name.
+  const response=await fetch('/api/sync',{method,redirect:'manual',
+    headers:body?{'content-type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
+  if(response.type==='opaqueredirect'||response.status===0){
+    const error=new Error('Access session expired');
+    error.status=401; error.needsLogin=true;
+    throw error;
+  }
   let data={};
   try{data=await response.json()}catch{}
   if(!response.ok){const error=new Error(data.error||`Sync failed (${response.status})`); error.status=response.status; error.data=data; throw error}
@@ -780,7 +792,7 @@ async function pushCloud(force=false){
         return pushCloud(true);
       }
     }else{
-      if(error.status===401) setSyncBlocked(SYNC_REJECTED);
+      if(error.status===401) setSyncBlocked(rejectionMessage(error));
       setSyncStatus(navigator.onLine?'error':'offline',navigator.onLine?'Sync unavailable · changes queued':'Offline · changes queued');
     }
   }finally{cloudInFlight=false}
@@ -799,8 +811,8 @@ async function initializeCloud(){
     const result=await apiSync('PATCH',{requestId:requestId(),baseRevision:0,initialize:true,changes,chapterChanges,draftChanges,historyChanges,marriageChanges});
     applyCloud(result,false); $('sync-init').classList.add('hidden');
   }catch(error){
-    if(error.status===401) setSyncBlocked(SYNC_REJECTED);
-    setSyncStatus('error',error.status===401?'Rejected · sync not set up':'Initialization failed · try again');
+    if(error.status===401) setSyncBlocked(rejectionMessage(error));
+    setSyncStatus('error',error.status===401?(error.needsLogin?'Session expired · reload':'Rejected · sync not set up'):'Initialization failed · try again');
   }finally{cloudInFlight=false; $('sync-init').disabled=false}
 }
 async function startCloudSync(){
@@ -815,8 +827,8 @@ async function startCloudSync(){
     $('sync-init').classList.add('hidden'); applyCloud(cloud,!!cloudBaseline);
     if(hasPatch(diffFromBaseline())) scheduleCloudSync();
   }catch(error){
-    if(error.status===401) setSyncBlocked(SYNC_REJECTED);
-    setSyncStatus(error.status===401?'error':'offline',error.status===401?'Rejected · sync not set up':'Cloud unavailable · using local copy');
+    if(error.status===401) setSyncBlocked(rejectionMessage(error));
+    setSyncStatus(error.status===401?'error':'offline',error.status===401?(error.needsLogin?'Session expired · reload':'Rejected · sync not set up'):'Cloud unavailable · using local copy');
   }
 }
 

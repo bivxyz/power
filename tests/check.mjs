@@ -62,6 +62,9 @@ if (!script.includes('function mergeContainer(base,sub)') || !script.includes('f
 if (script.includes('Object.assign(state,localChanges.changes)')) throw new Error('applyCloud still replaces merge fields wholesale, which drops one device\'s letters');
 if (!script.includes('state[key]=mergeContainer(state[key],sub)')) throw new Error('Local sub-key changes are not merged over the cloud container');
 if (!/return \{changes,keyed,/.test(script)) throw new Error('diffFromBaseline does not return per-key changes');
+if (!script.includes("redirect:'manual'")) throw new Error("An expired Access session 302s cross-origin; without redirect:'manual' it surfaces as a bare TypeError");
+if (!script.includes("response.type==='opaqueredirect'") || !script.includes('error.needsLogin=true')) throw new Error('An expired Access session is not distinguished from the cloud being down');
+if (!script.includes('const rejectionMessage=')) throw new Error('Expired-session and misconfigured-Access need different messages');
 if (!html.includes('id="sync-blocked"') || !script.includes('function setSyncBlocked(')) throw new Error('A rejected sync has no visible banner');
 if (!script.includes('lastFocusPull') || !script.includes('startCloudSync();')) throw new Error('The tab does not re-sync when it regains focus');
 if (script.includes('Sign in through Cloudflare Access')) throw new Error('Stale status copy: a 401 here is a misconfiguration, not a sign-in prompt');
