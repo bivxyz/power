@@ -143,15 +143,27 @@ npm run dev
 
 `wrangler.jsonc` is the Pages project configuration source of truth. The migration is in `migrations/0001_sync.sql`.
 
-### Access is required, not optional
+### The sync passphrase
 
-**Sync does not work until Cloudflare Access is in front of the hostname.** This is not hardening you can defer. `authenticated()` in `functions/api/sync.js` requires the `cf-access-jwt-assertion` header, and only Access injects it. Without Access every request to `/api/sync` returns 401, from every device, and the initialize button cannot succeed no matter how many times it is pressed. This was the state of the deployed app for its first weeks, and the only symptom was small grey footer text.
+Sync is gated by one passphrase, checked in the Pages Function. It is not in the page source: it is typed once per device, kept in `localStorage` under `power.key.v1`, and sent as an `x-power-key` header. It is deliberately not part of the synced state, so it never reaches D1.
 
-Zero Trust → Access → Applications → self-hosted → application domain `dash.biv.xyz` with the path left empty so it covers `/api/sync` → allow policy on one email address → one-time PIN.
+Set it on the deployment once:
 
-The function fails closed, so the `pages.dev` origin will keep rejecting rather than leaking. That also means the production custom domain is the only usable URL. `localhost` is exempt, so local development is unaffected.
+```
+npx wrangler pages secret put SYNC_SECRET --project-name power
+```
 
-The page itself carries `noindex`, which keeps it out of search results and out of nothing else. Access is what actually keeps it private, and what makes the prayer counts, unedited writing and raw ideas reachable only by you.
+`authenticated()` fails closed. With no `SYNC_SECRET` set it accepts `localhost` only, so an unconfigured deployment rejects everything rather than serving open. Comparison is over SHA-256 digests via `crypto.subtle.timingSafeEqual`, so a wrong passphrase cannot be narrowed by timing.
+
+A device with no passphrase, or the wrong one, gets a banner with a masked field and syncs nothing until it is right. The footer says the same thing; it will not claim "Synced" while it is blocked.
+
+For local development, put `SYNC_SECRET=...` in `.dev.vars`, which is gitignored. With no `.dev.vars`, `localhost` skips the check entirely.
+
+This replaced Cloudflare Access. Access worked on the desktop but its one-time PIN could not be completed on mobile: Cloudflare's own documentation notes that mail security tooling follows the emailed link and consumes the single-use code before you can type it, which is exactly what Gmail was doing. The alternative was registering a Google Cloud OAuth app to use Google as the identity provider. For a single-user dashboard this was the cheaper trade.
+
+**If an Access application is still in front of the hostname it must be removed**, or the API keeps 302ing to a login page and the passphrase never arrives. The app detects that case specifically and says so.
+
+The page carries `noindex`. Without Access the page shell is publicly reachable, but it holds no data: prayer counts, writing and ideas all live behind the passphrase.
 
 ---
 

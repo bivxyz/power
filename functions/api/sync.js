@@ -30,11 +30,29 @@ const json = (body, status = 200) => new Response(JSON.stringify(body), {
   headers: {'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store'}
 });
 
-function authenticated(request) {
-  const host = new URL(request.url).hostname;
-  if (host === 'localhost' || host === '127.0.0.1') return true;
-  return Boolean(request.headers.get('cf-access-jwt-assertion'));
+const KEY_HEADER = 'x-power-key';
+
+const sha256 = value => crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+
+// Hashing both sides first means the comparison is over two fixed-length buffers,
+// so a wrong passphrase cannot be narrowed down by how long the check takes.
+async function authenticated(request, env) {
+  const expected = env.SYNC_SECRET;
+  if (!expected) {
+    // No secret configured. Allow local development, never a deployed origin.
+    const host = new URL(request.url).hostname;
+    return host === 'localhost' || host === '127.0.0.1';
+  }
+  const presented = request.headers.get(KEY_HEADER);
+  if (!presented) return false;
+  const [a, b] = await Promise.all([sha256(presented), sha256(expected)]);
+  return crypto.subtle.timingSafeEqual(a, b);
 }
+
+const unauthorized = presented => json({
+  error: presented ? 'That passphrase is not right.' : 'A sync passphrase is required.',
+  code: presented ? 'key_rejected' : 'key_required'
+}, 401);
 
 async function snapshot(db) {
   const [meta, fields, chapters, drafts, history, marriage] = await Promise.all([
@@ -93,12 +111,12 @@ async function snapshot(db) {
 }
 
 export async function onRequestGet({request, env}) {
-  if (!authenticated(request)) return json({error: 'Authentication required'}, 401);
+  if (!await authenticated(request, env)) return unauthorized(request.headers.get(KEY_HEADER));
   return json(await snapshot(env.DB));
 }
 
 export async function onRequestPatch({request, env}) {
-  if (!authenticated(request)) return json({error: 'Authentication required'}, 401);
+  if (!await authenticated(request, env)) return unauthorized(request.headers.get(KEY_HEADER));
   let body;
   try { body = await request.json(); } catch { return json({error: 'Invalid JSON'}, 400); }
   const requestId = String(body.requestId || '');

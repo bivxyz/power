@@ -170,6 +170,7 @@
   .sync-status[data-state="syncing"] .sync-dot{background:var(--muted); animation:pulse 1s infinite alternate}
   .sync-status[data-state="offline"] .sync-dot,.sync-status[data-state="error"] .sync-dot{background:#d88d83}
   .sync-init{font-size:10px; padding:7px 10px}
+  #sync-key{font-size:12px; padding:8px 11px; min-width:200px}
   @keyframes pulse{to{opacity:.35}}
 
   .mx-tabs{margin-top:20px}
@@ -303,6 +304,10 @@
 
 <div class="sync-banner hidden" id="sync-blocked" role="alert">
   <p id="sync-blocked-text"></p>
+  <div class="sync-actions hidden" id="sync-key-form">
+    <input id="sync-key" type="password" autocomplete="off" spellcheck="false" aria-label="Sync passphrase" placeholder="Passphrase">
+    <button class="btn solid" id="sync-key-save" type="button">Save</button>
+  </div>
 </div>
 
 <div class="sync-banner hidden" id="sync-conflict" role="alert">
@@ -495,6 +500,9 @@ const BIBLE=[["Genesis",50],["Exodus",40],["Leviticus",27],["Numbers",36],["Deut
 
 const KEY='power.v2';
 const SYNC_KEY='power.sync.v1';
+// The passphrase never appears in the page source; it is typed once per device and
+// rides as a header. It is not in the state blob, so it is never pushed to D1.
+const KEY_STORE='power.key.v1';
 const dayKey=d=>{
   const pad=n=>String(n).padStart(2,'0');
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -618,6 +626,7 @@ function subDiff(local,base){
 }
 
 const SYNC_FIELDS=['prayers','runs','lifts','bookIdx','chapter','ideas','writing','writeTitle','writeSeconds','meditationVerse','chaptersToday','marriage','day','week','done','seen','at'];
+let syncKey=store.get(KEY_STORE)||'';
 let syncInfo=store.get(SYNC_KEY)||{};
 let cloudRevision=Number.isInteger(syncInfo.revision)?syncInfo.revision:0;
 let cloudBaseline=syncInfo.baseline||null;
@@ -644,12 +653,25 @@ function setSyncStatus(kind,label){
 }
 // A dead sync used to show only as small grey footer text, which is how it went
 // unnoticed for days. A rejected request gets a banner and stays there.
-function setSyncBlocked(message){
+let syncBlocked=false;
+function setSyncBlocked(message,askForKey){
+  syncBlocked=Boolean(message);
   const banner=$('sync-blocked');
   banner.classList.toggle('hidden',!message);
+  $('sync-key-form').classList.toggle('hidden',!askForKey);
   if(message) $('sync-blocked-text').textContent=message;
 }
-const SYNC_REJECTED='Cloud sync is being rejected by the server, so nothing on this device is reaching your other devices. Cloudflare Access is not in front of this site.';
+const SYNC_NEEDS_KEY='Enter the sync passphrase to let this device reach your other devices. Nothing is syncing until you do.';
+const SYNC_WRONG_KEY='That passphrase was rejected. Nothing on this device is syncing. Try again.';
+const SYNC_GATED='The API is redirecting to a login page, so the passphrase never reaches it. Remove the Cloudflare Access application from this hostname.';
+const SYNC_NO_SECRET='Cloud sync is being rejected by the server. The SYNC_SECRET has not been set on the deployment.';
+function rejectionMessage(error){
+  if(error.stillGated) return SYNC_GATED;
+  if(error.code==='key_rejected') return SYNC_WRONG_KEY;
+  if(error.code==='key_required') return syncKey?SYNC_NO_SECRET:SYNC_NEEDS_KEY;
+  return SYNC_NEEDS_KEY;
+}
+const wantsKey=error=>!error.stillGated&&(error.code==='key_required'||error.code==='key_rejected');
 function relativeSyncTime(value){
   if(!value) return 'Synced';
   const seconds=Math.max(0,Math.round((Date.now()-new Date(value).getTime())/1000));
@@ -713,10 +735,22 @@ function requestId(){
   return self.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 async function apiSync(method,body){
-  const response=await fetch('/api/sync',{method,headers:body?{'content-type':'application/json'}:{},body:body?JSON.stringify(body):undefined});
+  // An expired Cloudflare Access session answers with a cross-origin 302 to the login
+  // page. Following it fails CORS and surfaces as a bare TypeError, indistinguishable
+  // from the network being down, which is how a dead sync hides. redirect:'manual'
+  // turns that into an opaqueredirect we can name.
+  const headers={};
+  if(body) headers['content-type']='application/json';
+  if(syncKey) headers['x-power-key']=syncKey;
+  const response=await fetch('/api/sync',{method,redirect:'manual',headers,body:body?JSON.stringify(body):undefined});
+  if(response.type==='opaqueredirect'||response.status===0){
+    const error=new Error('Redirected away from the API');
+    error.status=401; error.stillGated=true;
+    throw error;
+  }
   let data={};
   try{data=await response.json()}catch{}
-  if(!response.ok){const error=new Error(data.error||`Sync failed (${response.status})`); error.status=response.status; error.data=data; throw error}
+  if(!response.ok){const error=new Error(data.error||`Sync failed (${response.status})`); error.status=response.status; error.code=data.code; error.data=data; throw error}
   return data;
 }
 function applyCloud(cloud,preserveLocal){
@@ -759,7 +793,10 @@ function applyCloud(cloud,preserveLocal){
 async function pushCloud(force=false){
   if(cloudInFlight||pendingConflict||!cloudInitialized) return;
   const patch=diffFromBaseline();
-  if(!hasPatch(patch)){setSyncStatus('synced',relativeSyncTime(syncInfo.updatedAt)); return}
+  if(!hasPatch(patch)){
+    if(!syncBlocked) setSyncStatus('synced',relativeSyncTime(syncInfo.updatedAt));
+    return;
+  }
   if(!navigator.onLine){setSyncStatus('offline','Offline · changes queued'); return}
   cloudInFlight=true; setSyncStatus('syncing','Syncing…');
   try{
@@ -780,7 +817,7 @@ async function pushCloud(force=false){
         return pushCloud(true);
       }
     }else{
-      if(error.status===401) setSyncBlocked(SYNC_REJECTED);
+      if(error.status===401) setSyncBlocked(rejectionMessage(error),wantsKey(error));
       setSyncStatus(navigator.onLine?'error':'offline',navigator.onLine?'Sync unavailable · changes queued':'Offline · changes queued');
     }
   }finally{cloudInFlight=false}
@@ -799,8 +836,8 @@ async function initializeCloud(){
     const result=await apiSync('PATCH',{requestId:requestId(),baseRevision:0,initialize:true,changes,chapterChanges,draftChanges,historyChanges,marriageChanges});
     applyCloud(result,false); $('sync-init').classList.add('hidden');
   }catch(error){
-    if(error.status===401) setSyncBlocked(SYNC_REJECTED);
-    setSyncStatus('error',error.status===401?'Rejected · sync not set up':'Initialization failed · try again');
+    if(error.status===401) setSyncBlocked(rejectionMessage(error),wantsKey(error));
+    setSyncStatus('error',error.status===401?'Rejected · passphrase needed':'Initialization failed · try again');
   }finally{cloudInFlight=false; $('sync-init').disabled=false}
 }
 async function startCloudSync(){
@@ -815,8 +852,8 @@ async function startCloudSync(){
     $('sync-init').classList.add('hidden'); applyCloud(cloud,!!cloudBaseline);
     if(hasPatch(diffFromBaseline())) scheduleCloudSync();
   }catch(error){
-    if(error.status===401) setSyncBlocked(SYNC_REJECTED);
-    setSyncStatus(error.status===401?'error':'offline',error.status===401?'Rejected · sync not set up':'Cloud unavailable · using local copy');
+    if(error.status===401) setSyncBlocked(rejectionMessage(error),wantsKey(error));
+    setSyncStatus(error.status===401?'error':'offline',error.status===401?'Rejected · passphrase needed':'Cloud unavailable · using local copy');
   }
 }
 
@@ -1583,6 +1620,17 @@ $('export').addEventListener('click',()=>{
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 });
 
+function saveSyncKey(){
+  const value=$('sync-key').value.trim();
+  if(!value) return;
+  syncKey=value;
+  store.set(KEY_STORE,syncKey);
+  $('sync-key').value='';
+  setSyncBlocked('');
+  startCloudSync();
+}
+$('sync-key-save').addEventListener('click',saveSyncKey);
+$('sync-key').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); saveSyncKey()}});
 $('sync-init').addEventListener('click',initializeCloud);
 $('sync-keep').addEventListener('click',()=>{
   if(!pendingConflict) return;
