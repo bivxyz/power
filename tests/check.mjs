@@ -62,10 +62,18 @@ if (!script.includes('function mergeContainer(base,sub)') || !script.includes('f
 if (script.includes('Object.assign(state,localChanges.changes)')) throw new Error('applyCloud still replaces merge fields wholesale, which drops one device\'s letters');
 if (!script.includes('state[key]=mergeContainer(state[key],sub)')) throw new Error('Local sub-key changes are not merged over the cloud container');
 if (!/return \{changes,keyed,/.test(script)) throw new Error('diffFromBaseline does not return per-key changes');
-if (!script.includes("redirect:'manual'")) throw new Error("An expired Access session 302s cross-origin; without redirect:'manual' it surfaces as a bare TypeError");
-if (!script.includes("response.type==='opaqueredirect'") || !script.includes('error.needsLogin=true')) throw new Error('An expired Access session is not distinguished from the cloud being down');
-if (!script.includes('const rejectionMessage=')) throw new Error('Expired-session and misconfigured-Access need different messages');
-if (!html.includes('id="sync-blocked"') || !script.includes('function setSyncBlocked(')) throw new Error('A rejected sync has no visible banner');
+if (!script.includes("redirect:'manual'")) throw new Error("A gateway in front of the API 302s cross-origin; without redirect:'manual' that reads as a bare TypeError");
+if (!script.includes("response.type==='opaqueredirect'") || !script.includes('error.stillGated=true')) throw new Error('A still-gated hostname is not distinguished from a rejected passphrase');
+if (!sync.includes('crypto.subtle.timingSafeEqual')) throw new Error('Passphrase comparison must be constant time');
+if (!sync.includes('const KEY_HEADER') || !script.includes("headers['x-power-key']=syncKey")) throw new Error('The passphrase is not sent as a header');
+if (/[?&](key|secret|pass)/i.test(script.slice(script.indexOf('async function apiSync')))) throw new Error('The passphrase must never ride in a URL');
+if (!sync.includes('if (!expected)') || !sync.includes("host === 'localhost'")) throw new Error('An unset secret must fail closed on any deployed origin');
+if (sync.includes('cf-access-jwt-assertion')) throw new Error('Cloudflare Access check should be gone');
+if (!html.includes('id="sync-key"') || !html.includes('type="password"')) throw new Error('There is no masked field to enter the passphrase');
+if (!script.includes('if(!syncBlocked) setSyncStatus')) throw new Error('A blocked sync can still report "Synced" when there is nothing queued to push');
+if (!script.includes('function saveSyncKey()') || !script.includes('store.set(KEY_STORE,syncKey)')) throw new Error('The passphrase is not persisted per device');
+if (/SYNC_FIELDS.*KEY_STORE|'power\.key\.v1'.*SYNC_FIELDS/.test(script)) throw new Error('The passphrase must not be part of synced state');
+if (script.includes('cloudBaseline.key') || script.includes('state.syncKey')) throw new Error('The passphrase must not live in the state blob');
 if (!script.includes('lastFocusPull') || !script.includes('startCloudSync();')) throw new Error('The tab does not re-sync when it regains focus');
 if (script.includes('Sign in through Cloudflare Access')) throw new Error('Stale status copy: a 401 here is a misconfiguration, not a sign-in prompt');
 
