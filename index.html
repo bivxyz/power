@@ -8,327 +8,428 @@
 <link rel="icon" type="image/jpeg" href="https://biv.xyz/biv.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script id="theme-boot">
+  // Dark is the default. Light is a per-device choice from the menu bar, applied
+  // before first paint so a light device never flashes dark. Not synced.
+  try{ if(JSON.parse(localStorage.getItem('power.theme.v1'))==='light') document.documentElement.dataset.theme='light' }catch{}
+</script>
 
 <style>
   :root{
-    --bg:#0c0c0d; --surface:#1a1a1c; --control:#232326; --ink:#f4f2ec; --muted:#aaa9a1;
-    --line:#343437; --line2:#626266; --gold:#f2b441; --dim:#777770;
-    --hand:"Caveat", cursive;
-    --mono:"JetBrains Mono", ui-monospace, monospace;
-    --body:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color-scheme:dark;
+    --desk:#111215; --dot:#202227; --win:#1B1C21; --panel:#23252B; --menubar:#17181C; --control:#141519;
+    --ink:#F1F0EA; --muted:#AAABA3; --dim:#7B7C75; --line:#30323A; --wline:#40424A;
+    --edge:#5A5C64; --shadow:#000; --gold:#F2B441; --gold-ink:#F2B441; --on-gold:#1F2119;
+    --blue:#809AFF; --red:#F08870; --green:#6DC28C;
+    --lift:0 16px 34px -16px rgba(0,0,0,.8);
+    --hand:"Caveat", "Segoe Print", cursive;
+    --sans:"IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  :root[data-theme="light"]{
+    color-scheme:light;
+    --desk:#E4E6DE; --dot:#C9CBC0; --win:#FDFDF8; --panel:#F3F3EC; --menubar:#F7F7F2; --control:#FFFFFF;
+    --ink:#1F2119; --muted:#5C5E54; --dim:#85877D; --line:#D5D7CC; --wline:#B9BBAF;
+    --edge:#1F2119; --shadow:#1F2119; --gold-ink:#9A6708;
+    --blue:#2F55E4; --red:#CC4B33; --green:#357F50;
+    --lift:0 14px 30px -18px rgba(31,33,25,.45);
   }
   *{box-sizing:border-box; margin:0; padding:0}
-  body{background:var(--bg); color:var(--ink); font-family:var(--body); line-height:1.7; -webkit-font-smoothing:antialiased; overflow-x:hidden}
-  ::selection{background:var(--gold); color:#000}
-  :focus-visible{outline:2px solid var(--gold); outline-offset:3px; border-radius:3px}
+  html{background:var(--desk)}
+  body{background:var(--desk); background-image:radial-gradient(var(--dot) 1px, transparent 1.2px); background-size:18px 18px;
+       color:var(--ink); font-family:var(--sans); font-size:14px; line-height:1.55; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+       min-height:100vh; display:flex; flex-direction:column}
+  ::selection{background:var(--gold); color:var(--on-gold)}
+  :focus-visible{outline:2px solid var(--blue); outline-offset:2px; border-radius:3px}
+  .eyebrow{font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim)}
+  .hidden{display:none !important}
 
-  .wrap{max-width:940px; margin:0 auto; padding:0 28px}
-  .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted)}
+  /* ---------- menu bar ---------- */
+  .menubar{position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    padding:7px 16px; background:var(--menubar); border-bottom:1.5px solid var(--edge)}
+  .brand{font-family:var(--hand); font-weight:700; font-size:30px; line-height:1; letter-spacing:.5px; white-space:nowrap}
+  .brand .gold{color:var(--gold-ink)}
+  .date{font-size:13px; color:var(--muted)}
+  .menubar .spacer{flex:1}
+  .menubar .button-group{align-items:center}
 
-  header{padding:8vh 0 5vh; border-bottom:1px solid var(--line)}
-  h1{font-family:var(--hand); font-weight:700; font-size:clamp(44px,7.5vw,72px); line-height:.9; letter-spacing:.5px; white-space:nowrap}
-  h1 .gold{color:var(--gold)}
-  .date{font-family:var(--hand); font-size:clamp(18px,3vw,30px); line-height:1; color:var(--muted); font-weight:600; margin-top:10px}
+  /* ---------- desktop ---------- */
+  .desk{display:grid; grid-template-columns:88px minmax(0,1fr) 300px; gap:20px; align-items:start;
+    width:100%; max-width:1320px; margin:0 auto; padding:20px 20px 32px; flex:1 0 auto}
+  .main-col,.side{display:flex; flex-direction:column; gap:18px; min-width:0}
 
-  .tabs{display:flex; flex:0 0 auto; gap:6px; margin-top:26px; padding:5px; border:1px solid var(--line); border-radius:12px; background:var(--surface)}
-  .tab,.mx-tab{flex:1; background:none; border:none; cursor:pointer; font-family:var(--mono); font-size:11px; letter-spacing:.08em;
-       text-transform:uppercase; color:var(--muted); padding:9px 14px; border-radius:8px; transition:color .2s, background-color .2s}
-  .tab[aria-selected="true"],.mx-tab[aria-selected="true"]{background:var(--bg); color:var(--ink)}
+  .icons{display:flex; flex-direction:column; gap:6px; position:sticky; top:68px}
+  .icon{display:flex; flex-direction:column; align-items:center; gap:5px; padding:7px 4px 6px; border:1.5px solid transparent;
+    border-radius:8px; background:none; cursor:pointer; color:var(--ink); font:500 12px/1.2 var(--sans)}
+  .icon .tile{width:46px; height:46px; border-radius:10px; border:1.5px solid var(--edge); box-shadow:0 2px 0 var(--shadow);
+    display:grid; place-items:center; background:var(--c); transition:transform .1s}
+  .icon svg{width:26px; height:26px; fill:none; stroke:#1F2119; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round}
+  .icon:hover .tile{transform:translateY(-1px)}
+  .icon .label{padding:1px 5px; border-radius:3px}
+  .icon[aria-selected="true"]{background:color-mix(in srgb, var(--blue) 12%, transparent); border-color:color-mix(in srgb, var(--blue) 45%, transparent)}
+  .icon[aria-selected="true"] .label{background:var(--blue); color:#fff}
 
-  .meter-row{display:flex; align-items:flex-start; justify-content:space-between; gap:18px; flex-wrap:wrap}
-  .day-actions{display:flex; align-items:flex-end; gap:9px; flex-wrap:wrap}
-  .day-actions .btn{margin-bottom:1px; white-space:nowrap}
-  .meter{display:flex; gap:10px; margin-top:26px; flex-wrap:wrap}
-  .segwrap{text-align:center}
-  .seg{width:72px; height:72px; border:1px solid var(--line2); border-radius:16px; background:var(--surface); cursor:pointer;
-       font-family:var(--hand); font-weight:700; font-size:40px; color:var(--muted);
-       display:flex; align-items:center; justify-content:center;
-       transition:color .22s, border-color .22s, background-color .22s, transform .1s}
-  .seg:hover{border-color:var(--gold); color:var(--ink)}
-  .seg:active{transform:scale(.94)}
-  .seg.on{color:#000; border-color:var(--gold); background:var(--gold)}
-  .segwrap .lab{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); margin-top:8px}
-  .segwrap.on .lab{color:var(--gold)}
-  .hint{font-family:var(--mono); font-size:11px; color:var(--dim); margin-top:18px; letter-spacing:.03em}
+  /* ---------- windows ---------- */
+  .window{background:var(--win); border:1.5px solid var(--edge); border-radius:8px; box-shadow:var(--lift); overflow:hidden; min-width:0}
+  .titlebar{display:flex; align-items:center; gap:10px; padding:6px 8px 6px 12px; background:var(--panel); border-bottom:1.5px solid var(--edge)}
+  .titlebar .t{font:600 13px/1.4 var(--sans); flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ctl{display:flex; gap:4px}
+  .ctl i{width:18px; height:18px; border:1.5px solid var(--edge); border-radius:4px; background:var(--win); display:grid; place-items:center;
+    font:600 11px/1 var(--mono); font-style:normal; color:var(--muted)}
+  .wbody{padding:16px}
+  .note{background:color-mix(in srgb, var(--gold) 9%, var(--win))}
+  .note .titlebar{background:color-mix(in srgb, var(--gold) 40%, var(--panel))}
+  .alert .titlebar{background:color-mix(in srgb, var(--gold) 55%, var(--panel)); color:var(--on-gold)}
 
-  .grid{display:grid; grid-template-columns:repeat(12,1fr); gap:14px; margin-top:5vh}
-  .card{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:22px 24px;
-        transition:opacity .22s ease, background-color .22s ease, border-color .22s ease}
-  .card.complete{background:#151516; border-color:#29292b; opacity:.62}
-  .card.complete:hover,.card.complete:focus-within{opacity:.86}
+  /* ---------- POWER keys ---------- */
+  .meter-row{display:flex; align-items:flex-end; justify-content:space-between; gap:14px; flex-wrap:wrap}
+  .meter{display:flex; gap:10px; flex-wrap:wrap}
+  .segwrap{display:flex; flex-direction:column; align-items:center; gap:7px}
+  .seg{width:60px; height:60px; border:1.5px solid var(--edge); border-radius:9px; background:var(--win); box-shadow:0 4px 0 var(--shadow);
+    font:700 38px/1 var(--hand); color:var(--dim); cursor:pointer; position:relative; top:0;
+    display:flex; align-items:center; justify-content:center; transition:top .06s, box-shadow .06s, background-color .15s, color .15s}
+  .seg:hover{color:var(--ink)}
+  .seg:active{top:4px; box-shadow:0 0 0 var(--shadow)}
+  .seg.on{background:var(--gold); color:var(--on-gold)}
+  .segwrap .lab{font:500 9.5px var(--mono); letter-spacing:.1em; text-transform:uppercase; color:var(--dim)}
+  .segwrap.on .lab{color:var(--gold-ink)}
+  .hint{font-size:12px; color:var(--dim); max-width:30ch; text-align:right}
+
+  /* ---------- panels (Today cards) ---------- */
+  .grid{display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:12px; margin-top:20px}
+  .card{background:var(--win); border:1.5px solid var(--wline); border-radius:7px; padding:0 14px 14px; min-width:0; transition:opacity .2s;
+    display:flex; flex-direction:column}
+  .card > :has(+ .foot), .card > :has(+ .hidden + .foot){margin-bottom:16px}
+  .card.complete{opacity:.66}
+  .card.complete:hover,.card.complete:focus-within{opacity:1}
   .c4{grid-column:span 4} .c8{grid-column:span 8} .c12{grid-column:span 12}
-  @media(max-width:760px){.c4,.c8{grid-column:span 12}}
+  .card-head{display:flex; justify-content:space-between; align-items:center; gap:10px; margin:0 -14px; padding:7px 10px 7px 10px;
+    background:var(--panel); border-bottom:1.5px solid var(--wline); border-radius:6px 6px 0 0}
+  .card-head .title{display:flex; align-items:center; gap:8px}
+  .letter{width:22px; height:22px; border-radius:5px; border:1.5px solid var(--edge); display:grid; place-items:center;
+    font:700 17px/1 var(--hand); background:var(--win); flex:0 0 auto}
+  .card.complete .card-head{background:repeating-linear-gradient(-45deg, var(--panel) 0 7px, color-mix(in srgb, var(--gold) 22%, var(--panel)) 7px 14px)}
+  .card.complete .letter{background:var(--gold); color:var(--on-gold)}
+  .card h2{font:600 13.5px/1.3 var(--sans)}
+  .card-head .eyebrow{font-size:9.5px; padding:2px 6px; border:1.5px solid var(--wline); border-radius:4px; background:var(--win); white-space:nowrap}
+  .timer-wrap{display:flex; align-items:center; gap:8px}
+  #timer{font-family:var(--mono); font-size:15px; letter-spacing:.02em; padding:2px 8px; border-radius:5px; border:1.5px solid var(--edge);
+    background:var(--control); font-variant-numeric:tabular-nums; text-transform:none}
+  .timer-button{width:30px; height:28px; display:grid; place-items:center; padding:0}
+  .timer-button svg{width:11px; height:11px; fill:currentColor}
+  .card .note{font-size:13px; color:var(--muted); margin-top:6px}
+  .foot{margin:auto -14px -14px; padding:8px 12px; border-top:1.5px dashed var(--line); display:flex; justify-content:space-between;
+    align-items:center; gap:10px; flex-wrap:wrap; font-size:12px; color:var(--muted)}
 
-  .card-head{display:flex; justify-content:space-between; align-items:baseline; gap:12px}
-  .timer-wrap{display:flex; align-items:center; gap:9px}
-  .timer-button{width:34px; height:34px; display:grid; place-items:center; border-radius:50%}
-  .timer-button svg{width:13px; height:13px; fill:currentColor}
-  .card h2{font-family:var(--hand); font-weight:700; font-size:32px; line-height:1}
-  .card .note{font-size:13px; color:var(--muted); margin-top:6px; line-height:1.5}
-  .foot{margin-top:18px; padding-top:14px; border-top:1px solid var(--line); display:flex; justify-content:space-between;
-        align-items:center; gap:12px; flex-wrap:wrap; font-family:var(--mono); font-size:12px; color:var(--dim)}
-  .foot a{color:var(--gold); text-decoration:none; border-bottom:1px solid transparent}
-  .foot a:hover{border-color:var(--gold)}
+  /* checkboxes (prayer times, runs, lifts) */
+  .taps{display:flex; gap:8px; margin-top:14px; flex-wrap:wrap}
+  .check{display:flex; align-items:center; gap:7px; padding:6px 10px 6px 7px; border:1.5px solid var(--edge); border-radius:6px;
+    background:var(--win); box-shadow:0 2px 0 var(--shadow); cursor:pointer; font:500 12.5px var(--sans); color:var(--ink); position:relative; top:0}
+  .check:active{top:2px; box-shadow:0 0 0 var(--shadow)}
+  .check .box{width:15px; height:15px; border:1.5px solid var(--edge); border-radius:3px; display:grid; place-items:center; background:var(--control)}
+  .check.on{background:color-mix(in srgb, var(--gold) 26%, var(--win))}
+  .check.on .box{background:var(--gold)}
+  .check.on .box::after{content:""; width:7px; height:4px; border-left:2px solid var(--on-gold); border-bottom:2px solid var(--on-gold); transform:rotate(-45deg) translate(1px,-1px)}
+  .exercise-set{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:14px}
+  .exercise-set .eyebrow{width:34px}
+  .exercise-set .taps{margin-top:0}
 
-  .taps{display:flex; gap:16px; margin-top:20px}
-  .tapcol{text-align:center}
-  .tapcol .lab{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); margin-top:8px}
-  .tapcol.on .lab{color:var(--gold)}
-  .exercise-set+.exercise-set{margin-top:22px; padding-top:18px; border-top:1px solid var(--line)}
-  .exercise-set .taps{margin-top:12px}
-  .dot{width:48px; height:48px; border-radius:50%; border:2px solid var(--line2); background:var(--control); cursor:pointer;
-       display:flex; align-items:center; justify-content:center; padding:0;
-       transition:background-color .18s, border-color .18s, transform .1s}
-  .dot::after{content:""; width:15px; height:15px; border-radius:50%; background:var(--line2); transition:background-color .18s, transform .18s}
-  .dot:hover{border-color:var(--gold)}
-  .dot.on{background:var(--gold); border-color:var(--gold)}
-  .dot.on::after{background:#000; transform:scale(.55)}
-  .dot:active{transform:scale(.92)}
-
-  input, select, textarea{font-family:var(--mono); font-size:14px; background:var(--control); color:var(--ink);
-       border:1px solid var(--line2); border-radius:10px; padding:12px 14px}
+  /* ---------- controls ---------- */
+  input, select, textarea{font:14px var(--sans); background:var(--control); color:var(--ink);
+       border:1.5px solid var(--wline); border-radius:6px; padding:8px 10px; min-width:0}
   input::placeholder, textarea::placeholder{color:var(--dim)}
-  input:focus, select:focus, textarea:focus{outline:none; border-color:var(--gold)}
-  select{appearance:none; cursor:pointer; padding-right:32px;
+  input:focus, select:focus, textarea:focus{outline:none; border-color:var(--blue); box-shadow:0 0 0 3px color-mix(in srgb, var(--blue) 20%, transparent)}
+  input:disabled{opacity:.55}
+  select{appearance:none; cursor:pointer; padding-right:30px;
        background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
-       background-position:calc(100% - 17px) 21px, calc(100% - 12px) 21px; background-size:5px 5px; background-repeat:no-repeat}
-  textarea{resize:none; line-height:1.7; width:100%}
+       background-position:calc(100% - 16px) 50%, calc(100% - 11px) 50%; background-size:5px 5px; background-repeat:no-repeat}
+  textarea{resize:none; line-height:1.65; width:100%}
 
-  .btn{font-family:var(--mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; cursor:pointer;
-       background:none; border:1px solid var(--line2); color:var(--muted); padding:9px 14px; border-radius:9px;
-       transition:border-color .2s, color .2s}
-  .btn:hover{border-color:var(--gold); color:var(--gold)}
-  .btn.solid{background:var(--gold); border-color:var(--gold); color:#000; font-weight:500}
-  .btn.solid:hover{filter:brightness(1.08); color:#000}
-  .btn:disabled{background:none; border-color:var(--line); color:var(--dim); cursor:default; filter:none}
-  .btn.on{border-color:var(--gold); color:var(--gold)}
-  .btn.danger:hover{border-color:#d88d83; color:#f0aaa0}
-  .btn.timer-button{padding:0; line-height:0}
+  .btn{font:500 13px/1 var(--sans); color:var(--ink); background:var(--win); border:1.5px solid var(--edge); border-radius:6px;
+    padding:8px 12px; box-shadow:0 2px 0 var(--shadow); cursor:pointer; position:relative; top:0; white-space:nowrap;
+    transition:top .06s, box-shadow .06s, background-color .15s, color .15s}
+  .btn:hover{background:var(--panel)}
+  .btn:active{top:2px; box-shadow:0 0 0 var(--shadow)}
+  .btn.solid{background:var(--gold); color:var(--on-gold); font-weight:600}
+  .btn.solid:hover{filter:brightness(1.06)}
+  .btn.on{background:color-mix(in srgb, var(--gold) 26%, var(--win))}
+  .btn.danger{border-color:transparent; box-shadow:none; background:none; color:var(--muted)}
+  .btn.danger:hover{color:var(--red)}
+  .btn.danger:active{top:0}
+  .btn:disabled,.btn:disabled:hover{opacity:.45; cursor:default; top:0; box-shadow:0 2px 0 var(--shadow); filter:none; background:var(--win); color:var(--ink)}
+  .btn.solid:disabled{background:var(--gold); color:var(--on-gold)}
+  .btn.sm{font-size:12px; padding:6px 9px}
 
-  .row{display:flex; gap:9px; margin-top:18px; flex-wrap:wrap}
-  .row input{flex:1; min-width:180px}
-  .button-group{display:flex; gap:8px; flex-wrap:wrap}
+  .row{display:flex; gap:8px; margin-top:14px; flex-wrap:wrap}
+  .row input{flex:1; min-width:170px}
+  .button-group{display:flex; gap:6px; flex-wrap:wrap}
 
-  .pips{display:flex; gap:5px; margin-top:14px}
-  .pip{flex:1; height:5px; border-radius:3px; background:var(--line2); transition:background-color .25s}
-  .pip.on{background:var(--gold)}
+  .pips{display:flex; gap:4px; margin-top:12px}
+  .pip{flex:1; height:8px; border-radius:2px; border:1.5px solid var(--wline); background:var(--control); transition:background-color .2s}
+  .pip.on{background:var(--gold); border-color:var(--edge)}
 
-  .ideas{list-style:none; margin-top:16px; font-family:var(--mono); font-size:13px; line-height:1.7}
-  .ideas li{display:flex; gap:12px; padding:7px 0; border-top:1px solid var(--line)}
+  .ideas{list-style:none; margin-top:12px; font-size:13.5px}
+  .ideas li{display:flex; gap:12px; padding:6px 0; border-top:1px dashed var(--line)}
   .ideas li:first-child{border-top:none}
-  .ideas .n{color:var(--dim)}
-  .empty{margin-top:16px; font-size:14px; color:var(--dim); max-width:42ch}
-  .drafts-panel{margin-top:18px; padding-top:16px; border-top:1px solid var(--line)}
-  .drafts-head{display:flex; justify-content:space-between; align-items:center; gap:12px}
-  .draft-list{list-style:none; margin-top:9px}
-  .draft-item{display:flex; justify-content:space-between; align-items:center; gap:14px; padding:10px 0; border-top:1px solid var(--line)}
+  .ideas .n{font-family:var(--mono); font-size:12px; color:var(--dim); padding-top:1px; font-variant-numeric:tabular-nums; flex:0 0 auto}
+  .empty{margin-top:14px; font-size:13px; color:var(--dim); max-width:46ch}
+
+  .drafts-panel{margin-top:14px; padding-top:12px; border-top:1px dashed var(--line)}
+  .drafts-head{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap}
+  .draft-list{list-style:none; margin-top:6px}
+  .draft-item{display:flex; justify-content:space-between; align-items:center; gap:14px; padding:8px 0; border-top:1px dashed var(--line)}
   .draft-item:first-child{border-top:none}
   .draft-copy{min-width:0; flex:1}
-  .draft-title{font-family:var(--mono); font-size:12px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .draft-title{font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .draft-time{font-family:var(--mono); font-size:10px; color:var(--dim); margin-top:2px}
   .draft-item .button-group{flex:0 0 auto}
-  .draft-item .btn{padding:6px 9px; font-size:10px}
-  .draft-empty{font-size:12px; margin-top:8px}
+  .draft-item .btn{padding:5px 8px; font-size:11.5px}
+  .draft-empty{font-size:12px; margin-top:6px}
   @media(max-width:480px){.draft-item{align-items:flex-start; flex-direction:column}.draft-item .button-group{width:100%}}
 
-  .selects{display:flex; gap:9px; margin-top:18px; flex-wrap:wrap}
-  .selects select:first-of-type{flex:1; min-width:170px}
-  .selects select:last-of-type{width:96px}
+  .selects{display:flex; gap:8px; margin-top:14px; flex-wrap:wrap}
+  .selects select:first-of-type{flex:1; min-width:160px}
+  .selects select:last-of-type{width:90px}
 
-  .meditation{margin-top:22px; padding-top:18px; border-top:1px solid var(--line)}
-  .meditation-form{display:grid; grid-template-columns:minmax(170px,1fr) 96px minmax(110px,.65fr) auto; gap:9px; margin-top:12px}
-  .meditation-form input{min-width:0; width:100%}
-  .meditation-status{min-height:1.7em; margin-top:8px; font-family:var(--mono); font-size:11px; color:var(--dim)}
-  .meditation-status.error{color:#f0aaa0}
-  .meditation-verse{margin-top:14px; padding:17px 18px; border:1px solid var(--line2); border-radius:11px; background:var(--control)}
-  .meditation-reference{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap}
-  .meditation-text{margin-top:9px; font-family:var(--hand); font-size:25px; line-height:1.35; color:var(--ink)}
-  .meditation-actions{margin-top:12px; display:flex; justify-content:flex-end}
-  @media(max-width:640px){.meditation-form{grid-template-columns:1fr 84px}.meditation-form .verse-range{grid-column:1/-1}.meditation-form .btn{grid-column:1/-1}}
+  /* verse window */
+  .meditation-form{display:grid; grid-template-columns:minmax(0,1fr) 84px; gap:8px}
+  .meditation-form .verse-range,.meditation-form .btn{grid-column:1/-1}
+  .meditation-form input{width:100%}
+  .meditation-status{min-height:1.6em; margin-top:6px; font-family:var(--mono); font-size:11px; color:var(--dim)}
+  .meditation-status.error{color:var(--red)}
+  .meditation-verse{border-left:3px solid var(--gold); padding:2px 0 2px 12px}
+  .meditation-reference{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; font-size:12.5px}
+  .meditation-text{margin-top:6px; font-size:15px; line-height:1.6}
+  .meditation-actions{margin-top:8px; display:flex; justify-content:flex-end}
 
-  .bible-tracker{margin-top:22px; overflow-x:hidden; padding-bottom:8px}
-  .bible-group+.bible-group{margin-top:22px}
-  .bible-group-title{padding-bottom:8px; border-bottom:1px solid var(--line); margin-bottom:10px}
+  /* ---------- single-panel views (Week, Marriage, Bible) ---------- */
+  .view-single .grid{margin-top:0}
+  .view-single .card{border:0; padding:0; background:none}
+  .view-single .card-head{margin:0; padding:0; background:none; border:0; justify-content:flex-end}
+  .view-single .card-head h2{display:none}
+  .view-single .foot{margin:16px 0 0; padding:10px 0 0}
+
+  /* bible */
+  .bible-tracker{margin-top:10px; padding-bottom:4px}
+  .bible-group+.bible-group{margin-top:20px}
+  .bible-group-title{padding-bottom:6px; border-bottom:1.5px dashed var(--line); margin-bottom:10px}
   .bible-row{display:flex; align-items:flex-start; gap:10px; min-height:19px; margin-bottom:3px}
-  .bible-name{width:128px; flex:0 0 128px; text-align:right; font-family:var(--mono); font-size:10px; color:var(--muted); white-space:nowrap}
-  .chapter-grid{display:flex; flex:1; flex-wrap:wrap; gap:3px; min-width:0; max-width:620px; padding-top:4px}
+  .bible-name{width:128px; flex:0 0 128px; text-align:right; font-size:11.5px; color:var(--muted); white-space:nowrap}
+  .chapter-grid{display:flex; flex:1; flex-wrap:wrap; gap:3px; min-width:0; max-width:640px; padding-top:4px}
   .chapter-box{display:block; width:11px; height:11px; flex:0 0 11px; padding:0; appearance:none; cursor:pointer;
-        border-radius:3px; background:var(--line); border:1px solid transparent; transition:background-color .16s, border-color .16s, transform .1s}
-  .chapter-box:hover{border-color:var(--gold)}
-  .chapter-box:active{transform:scale(.84)}
-  .chapter-box.read{background:var(--gold); border-color:#ffd88a}
-  .chapter-box.next{border-color:var(--muted)}
+        border-radius:2px; background:var(--line); border:1px solid transparent; transition:background-color .16s, border-color .16s}
+  .chapter-box:hover{border-color:var(--ink)}
+  .chapter-box.read{background:var(--gold); border-color:color-mix(in srgb, var(--edge) 50%, var(--gold))}
+  .chapter-box.next{background:var(--blue)}
 
-  .sync-banner{margin-top:22px; padding:14px 16px; border:1px solid var(--gold); border-radius:11px;
-    background:#211b11; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap}
-  .sync-banner p{font-family:var(--mono); font-size:12px; color:var(--ink)}
+  /* sync alerts, status */
+  .sync-banner .wbody{display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap}
+  .sync-banner p{font-size:13px; max-width:60ch}
   .sync-actions{display:flex; gap:8px; flex-wrap:wrap}
-  .sync-status{display:flex; align-items:center; gap:8px}
-  .sync-dot{width:7px; height:7px; border-radius:50%; background:var(--dim); flex:0 0 auto}
-  .sync-status[data-state="synced"] .sync-dot{background:var(--gold)}
-  .sync-status[data-state="syncing"] .sync-dot{background:var(--muted); animation:pulse 1s infinite alternate}
-  .sync-status[data-state="offline"] .sync-dot,.sync-status[data-state="error"] .sync-dot{background:#d88d83}
-  .sync-init{font-size:10px; padding:7px 10px}
-  #sync-key{font-size:12px; padding:8px 11px; min-width:200px}
+  .sync-status{display:flex; align-items:center; gap:7px}
+  .sync-dot{width:8px; height:8px; border-radius:50%; background:var(--dim); flex:0 0 auto}
+  .sync-status[data-state="synced"] .sync-dot{background:var(--green); box-shadow:0 0 0 3px color-mix(in srgb, var(--green) 25%, transparent)}
+  .sync-status[data-state="syncing"] .sync-dot{background:var(--gold); animation:pulse 1s infinite alternate}
+  .sync-status[data-state="offline"] .sync-dot,.sync-status[data-state="error"] .sync-dot{background:var(--red)}
+  .sync-init{font-size:12px}
+  #sync-key{font-size:13px; min-width:200px}
   @keyframes pulse{to{opacity:.35}}
 
-  .mx-tabs{margin-top:20px}
-  .mx-item{margin-top:20px; padding:18px 20px; border:1px solid var(--line2); border-radius:11px; background:var(--control)}
+  /* marriage */
+  .mx-tabs{display:flex; gap:6px; margin-top:4px}
+  .mx-tab{font:500 13px/1 var(--sans); color:var(--ink); background:var(--win); border:1.5px solid var(--edge); border-radius:6px;
+    padding:8px 12px; box-shadow:0 2px 0 var(--shadow); cursor:pointer; position:relative; top:0}
+  .mx-tab:active{top:2px; box-shadow:none}
+  .mx-tab[aria-selected="true"]{background:var(--gold); color:var(--on-gold); font-weight:600}
+  .mx-item{margin-top:16px; padding:16px 18px; border:1.5px solid var(--wline); border-radius:7px; background:var(--panel)}
   .mx-item.done{border-color:var(--gold)}
-  .mx-task{font-family:var(--hand); font-size:30px; line-height:1.2; color:var(--ink)}
-  .mx-belief{font-size:13px; color:var(--muted); margin-top:9px; line-height:1.55; max-width:62ch}
-  #mx-response{margin-top:14px}
-  .mx-options{display:grid; gap:10px; margin-top:14px}
-  .mx-option{padding:16px 18px; border:1px solid var(--line2); border-radius:11px; background:var(--control)}
-  .mx-option.chosen{border-color:var(--gold)}
-  .mx-option .mx-task{font-size:23px}
-  .mx-option .button-group{margin-top:13px}
-  .mx-slots{display:grid; gap:10px; margin-top:14px}
-  .mx-slot{padding:16px 18px; border:1px dashed var(--line2); border-radius:11px; min-height:64px;
+  .mx-task{font-size:21px; font-weight:600; line-height:1.3; color:var(--ink)}
+  .mx-belief{font-size:13.5px; color:var(--muted); margin-top:6px; max-width:62ch}
+  #mx-response{margin-top:12px}
+  .mx-slots{display:grid; gap:10px; margin-top:12px}
+  .mx-slot{padding:14px 16px; border:1.5px dashed var(--wline); border-radius:7px; min-height:62px;
         display:flex; flex-direction:column; justify-content:center; transition:border-color .16s, background-color .16s}
-  .mx-slot.filled{border-style:solid; background:var(--control)}
+  .mx-slot.filled{border-style:solid; background:var(--panel)}
   .mx-slot.chosen{border-color:var(--gold)}
-  .mx-slot.over{border-color:var(--gold); background:#211b11}
+  .mx-slot.over{border-color:var(--gold); background:color-mix(in srgb, var(--gold) 14%, var(--win))}
   .mx-slot-empty{font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--dim)}
-  .mx-slot .mx-task{font-size:21px}
-  .mx-slot .button-group{margin-top:12px}
-  .mx-pool-head{margin-top:26px; padding-top:18px; border-top:1px solid var(--line)}
+  .mx-slot .mx-task{font-size:17px}
+  .mx-slot .button-group{margin-top:10px}
+  .mx-pool-head{margin-top:22px; padding-top:14px; border-top:1.5px dashed var(--line)}
   .mx-pool li{align-items:center; gap:10px; flex-wrap:wrap}
   .mx-pool .grip{flex:0 0 auto; cursor:grab; touch-action:none; color:var(--dim); font-size:15px;
         padding:2px 4px; border-radius:5px; user-select:none; -webkit-user-select:none}
-  .mx-pool .grip:hover{color:var(--gold)}
+  .mx-pool .grip:hover{color:var(--gold-ink)}
   .mx-pool .txt{flex:1 1 150px; min-width:0; cursor:pointer}
   .mx-pool li.used{opacity:.45}
-  .mx-pool li.used .grip{cursor:default; color:var(--line2)}
+  .mx-pool li.used .grip{cursor:default; color:var(--line)}
   .mx-pool .when-used{font-family:var(--mono); font-size:10px; color:var(--dim); white-space:nowrap; margin-left:auto}
-  .mx-pool .kill{flex:0 0 auto; padding:4px 8px; font-size:10px}
-  .mx-drag{position:fixed; z-index:50; pointer-events:none; padding:9px 13px; border-radius:9px;
-        background:var(--gold); color:#000; font-family:var(--mono); font-size:12px; max-width:280px;
-        overflow:hidden; text-overflow:ellipsis; white-space:nowrap; box-shadow:0 6px 18px rgba(0,0,0,.45)}
-  .mx-picked{margin-top:18px; padding-top:16px; border-top:1px solid var(--line)}
-  .mx-fields{display:grid; grid-template-columns:1fr 160px; gap:9px; margin-top:11px}
+  .mx-pool .kill{flex:0 0 auto; padding:4px 8px; font-size:11px}
+  .mx-drag{position:fixed; z-index:50; pointer-events:none; padding:8px 12px; border-radius:6px; border:1.5px solid var(--edge);
+        background:var(--gold); color:var(--on-gold); font-size:13px; max-width:280px;
+        overflow:hidden; text-overflow:ellipsis; white-space:nowrap; box-shadow:0 4px 0 var(--shadow)}
+  .mx-picked{margin-top:16px; padding-top:14px; border-top:1.5px dashed var(--line)}
+  .mx-fields{display:grid; grid-template-columns:1fr 160px; gap:8px; margin-top:10px}
   .mx-fields textarea{grid-column:1/-1}
-  .mx-entry{padding:14px 0; border-top:1px solid var(--line)}
+  .mx-entry{padding:12px 0; border-top:1px dashed var(--line)}
   .mx-entry:first-child{border-top:none}
   .mx-entry-meta{font-family:var(--mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--dim)}
-  .mx-entry-task{font-family:var(--hand); font-size:21px; line-height:1.25; margin-top:5px; color:var(--ink)}
-  .mx-entry-text{font-size:14px; color:var(--muted); margin-top:7px; line-height:1.6; white-space:pre-wrap; max-width:70ch}
+  .mx-entry-task{font-size:15px; font-weight:600; line-height:1.35; margin-top:4px; color:var(--ink)}
+  .mx-entry-text{font-size:14px; color:var(--muted); margin-top:6px; white-space:pre-wrap; max-width:70ch}
   .mx-group-title{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted);
-        margin-top:22px; padding-bottom:7px; border-bottom:1px solid var(--line)}
+        margin-top:20px; padding-bottom:6px; border-bottom:1.5px dashed var(--line)}
   .mx-group:first-child .mx-group-title{margin-top:12px}
-  @media(max-width:640px){.mx-fields{grid-template-columns:1fr} .mx-task{font-size:26px}}
-  @media(max-width:480px){.mx-tab{padding:9px 6px; font-size:10px; letter-spacing:.04em; white-space:nowrap}}
+  @media(max-width:640px){.mx-fields{grid-template-columns:1fr} .mx-task{font-size:19px}}
 
-  .week-panel{margin-top:22px}
-  .target-row{display:grid; grid-template-columns:84px 66px 1fr; align-items:center; gap:12px; padding:9px 0; border-top:1px solid var(--line)}
-  .target-row:first-child{border-top:none}
-  .target-name{font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
-  .target-count{font-family:var(--mono); font-size:12px; color:var(--ink); text-align:right}
-  .target-row.hit .target-count{color:var(--gold)}
-  .target-row .pips{margin-top:0}
+  /* week */
+  .week-panel{margin-top:8px; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px}
+  .target-row{border:1.5px solid var(--wline); border-radius:7px; padding:9px 10px; display:flex; flex-direction:column; gap:6px; min-width:0}
+  .target-name{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim)}
+  .target-count{font-family:var(--mono); font-size:16px; font-weight:500; font-variant-numeric:tabular-nums}
+  .target-row.hit{border-color:var(--gold)}
+  .target-row.hit .target-count{color:var(--gold-ink)}
+  .target-row .pips{margin-top:0; gap:2px}
+  .target-row .pip{height:7px; border-width:1px}
 
-  .week-grid{display:grid; grid-template-columns:auto repeat(7,minmax(0,1fr)); gap:4px; margin-top:22px; align-items:center}
+  .week-grid{display:grid; grid-template-columns:auto repeat(7,minmax(0,1fr)); gap:5px; margin-top:18px; align-items:center}
   .week-head{font-family:var(--mono); font-size:10px; letter-spacing:.06em; color:var(--dim); text-align:center; line-height:1.35; padding-bottom:4px}
   .week-head .dnum{display:block; font-size:12px; color:var(--muted)}
-  .week-head.today, .week-head.today .dnum{color:var(--gold)}
-  .week-row-label{font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); padding-right:10px; white-space:nowrap}
+  .week-head.today, .week-head.today .dnum{color:var(--ink); font-weight:700}
+  .week-row-label{font-size:13px; font-weight:500; padding-right:10px; white-space:nowrap}
   .week-row-label .short{display:none}
-  .week-cell{width:100%; height:30px; padding:0; appearance:none; cursor:pointer; border-radius:6px; background:var(--line);
-        border:1px solid transparent; transition:background-color .16s, border-color .16s, transform .1s}
-  .week-cell:hover:not(:disabled){border-color:var(--gold)}
-  .week-cell:active:not(:disabled){transform:scale(.94)}
-  .week-cell.today{border-color:var(--line2)}
-  .week-cell.on{background:var(--gold); border-color:#ffd88a}
-  .week-cell:disabled{cursor:default; background:none; border-color:#232326; opacity:1}
+  .week-cell{width:100%; height:32px; padding:0; appearance:none; cursor:pointer; border-radius:5px; background:var(--win);
+        border:1.5px solid var(--edge); box-shadow:0 2px 0 var(--shadow); position:relative; top:0; transition:background-color .15s}
+  .week-cell:active:not(:disabled){top:2px; box-shadow:none}
+  .week-cell.today{outline:2px solid var(--blue); outline-offset:1px}
+  .week-cell.on{background:var(--gold)}
+  .week-cell:disabled{cursor:default; background:transparent; border-style:dashed; border-color:var(--line); box-shadow:none}
 
-  .streaks{display:flex; gap:10px; margin-top:24px; padding-top:20px; border-top:1px solid var(--line); flex-wrap:wrap}
-  .streak{flex:1; min-width:56px; text-align:center}
-  .streak .n{font-family:var(--hand); font-weight:700; font-size:34px; line-height:1; color:var(--dim)}
-  .streak.live .n{color:var(--gold)}
-  .streak .lab{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); margin-top:6px}
-  .streak-best{font-family:var(--mono); font-size:11px; color:var(--dim); margin-top:16px}
+  /* streaks window */
+  .streaks{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:6px; text-align:center}
+  .streak{display:flex; flex-direction:column-reverse; border:1.5px solid var(--wline); border-radius:6px; padding:6px 0 5px}
+  .streak .lab{font:700 22px/1 var(--hand); color:var(--dim)}
+  .streak .n{font:500 16px/1.3 var(--mono); color:var(--muted); margin-top:3px}
+  .streak.live{border-color:var(--gold)}
+  .streak.live .lab{color:var(--gold-ink)}
+  .streak.live .n{color:var(--ink)}
+  .streak-best{font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); margin-top:10px}
+
+  /* ---------- taskbar ---------- */
+  .taskbar{position:sticky; bottom:0; z-index:20; display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    padding:7px 16px calc(7px + env(safe-area-inset-bottom, 0px)); background:var(--menubar); border-top:1.5px solid var(--edge);
+    font-size:12px; color:var(--muted)}
+  .taskbar .spacer{flex:1}
+  .taskbar .host{font-family:var(--mono); font-size:11px; color:var(--dim)}
+
+  @media (prefers-reduced-motion:reduce){ *{transition:none !important; animation:none !important} }
+
+  @media(max-width:1060px){
+    .desk{grid-template-columns:88px minmax(0,1fr)}
+    .side{grid-column:2; flex-direction:row; flex-wrap:wrap; align-items:flex-start}
+    .side .window{flex:1 1 280px}
+  }
+  @media(max-width:760px){
+    .desk{grid-template-columns:minmax(0,1fr); padding:12px 12px 24px; gap:14px}
+    .icons{position:static; flex-direction:row; justify-content:space-between; gap:2px}
+    .icon{flex:1 1 0; min-width:0}
+    .side{grid-column:1; flex-direction:column}
+    .side{align-items:stretch}
+    .side .window{flex:none}
+    .c4,.c8{grid-column:span 12}
+    .window{box-shadow:none}
+    .wbody{padding:12px}
+    .hint{text-align:left}
+    .week-panel{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .menubar{padding:6px 12px; gap:10px}
+    .menubar .date{order:3; width:100%; margin-top:-4px}
+  }
   @media(max-width:640px){
     .week-row-label .full{display:none}
-    .week-row-label .short{display:inline}
-    .week-row-label{padding-right:7px}
-    .week-grid{gap:3px}
-    .week-cell{height:26px}
-    .target-row{grid-template-columns:62px 58px 1fr; gap:9px}
-    .streaks{gap:6px; flex-wrap:nowrap}
-    .streak{min-width:0}
-    .streak .n{font-size:30px}
-  }
-
-  footer{margin-top:6vh; padding:26px 0 12vh; border-top:1px solid var(--line);
-         font-family:var(--mono); font-size:12px; color:var(--dim);
-         display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap}
-  .hidden{display:none}
-  @media (prefers-reduced-motion:reduce){
-    *{transition:none !important}
+    .week-row-label .short{display:inline; font:700 18px/1 var(--hand)}
+    .week-grid{gap:4px}
+    .week-cell{height:28px}
+    .bible-name{width:92px; flex-basis:92px}
   }
   @media(max-width:480px){
-    .wrap{padding:0 18px}
-    header{padding-top:5vh}
-    h1{font-size:clamp(52px,22vw,72px)}
-    .meter{gap:7px; justify-content:space-between}
-    .seg{width:54px; height:54px; border-radius:13px; font-size:32px}
-    .card{padding:20px}
-    .bible-name{width:92px; flex-basis:92px}
+    .meter{gap:7px; justify-content:space-between; width:100%}
+    .seg{width:52px; height:52px; font-size:32px}
+    .titlebar .ctl{display:none}
   }
 </style>
 </head>
 
 <body>
-<div class="wrap">
-
-<header>
-  <p class="eyebrow">Daily discipline</p>
-  <h1>P<span class="gold">O</span>WER</h1>
+<header class="menubar">
+  <h1 class="brand" aria-label="POWER">P<span class="gold">O</span>WER</h1>
   <p class="date" id="today-label"></p>
-
-  <div class="meter-row">
-    <div class="meter" id="meter" aria-label="POWER completion today"></div>
-    <div class="day-actions">
-      <div class="tabs" role="tablist">
-        <button class="tab" data-view="today" role="tab" aria-selected="true">Today</button>
-        <button class="tab" data-view="week" role="tab" aria-selected="false">Week</button>
-        <button class="tab" data-view="marriage" role="tab" aria-selected="false">Marriage</button>
-        <button class="tab" data-view="bible" role="tab" aria-selected="false">Bible</button>
-      </div>
-      <button class="btn danger" id="clear-day" type="button">Clear day</button>
-    </div>
-  </div>
-  <p class="hint">Tap a letter if you did it somewhere else. Tap again to bring the card back.</p>
+  <span class="spacer"></span>
+  <span class="button-group">
+    <button class="btn sm" id="theme-toggle" type="button">Light</button>
+    <button class="btn danger sm" id="clear-day" type="button">Clear day</button>
+  </span>
 </header>
 
-<div class="sync-banner hidden" id="sync-blocked" role="alert">
-  <p id="sync-blocked-text"></p>
-  <div class="sync-actions hidden" id="sync-key-form">
-    <input id="sync-key" type="password" autocomplete="off" spellcheck="false" aria-label="Sync passphrase" placeholder="Passphrase">
-    <button class="btn solid" id="sync-key-save" type="button">Save</button>
-  </div>
-</div>
+<div class="desk">
 
-<div class="sync-banner hidden" id="sync-conflict" role="alert">
-  <p id="sync-conflict-text">A newer cloud edit conflicts with this device.</p>
-  <div class="sync-actions">
-    <button class="btn solid" id="sync-keep" type="button">Keep this device</button>
-    <button class="btn" id="sync-cloud" type="button">Use cloud</button>
+<nav class="icons" role="tablist" aria-label="Views">
+  <button class="tab icon" data-view="today" data-title="Today" role="tab" aria-selected="true" type="button" style="--c:#F2B441">
+    <span class="tile" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg></span>
+    <span class="label">Today</span></button>
+  <button class="tab icon" data-view="week" data-title="This week" role="tab" aria-selected="false" type="button" style="--c:#8FB2FF">
+    <span class="tile" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M7 14h2M11 14h2M15 14h2M7 17h2M11 17h2"/></svg></span>
+    <span class="label">Week</span></button>
+  <button class="tab icon" data-view="marriage" data-title="Marriage" role="tab" aria-selected="false" type="button" style="--c:#E3E1D6">
+    <span class="tile" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></span>
+    <span class="label">Marriage</span></button>
+  <button class="tab icon" data-view="bible" data-title="Bible reading" role="tab" aria-selected="false" type="button" style="--c:#8CCB9E">
+    <span class="tile" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z"/><path d="M5 18a2 2 0 0 1 2-2h11M11 7v6M8.5 9.5h5"/></svg></span>
+    <span class="label">Bible</span></button>
+</nav>
+
+<main class="main-col">
+
+<section class="window alert sync-banner hidden" id="sync-blocked" role="alert">
+  <div class="titlebar"><h2 class="t">Sync paused</h2></div>
+  <div class="wbody">
+    <p id="sync-blocked-text"></p>
+    <div class="sync-actions hidden" id="sync-key-form">
+      <input id="sync-key" type="password" autocomplete="off" spellcheck="false" aria-label="Sync passphrase" placeholder="Passphrase">
+      <button class="btn solid" id="sync-key-save" type="button">Save</button>
+    </div>
   </div>
-</div>
+</section>
+
+<section class="window alert sync-banner hidden" id="sync-conflict" role="alert">
+  <div class="titlebar"><h2 class="t">Sync conflict</h2></div>
+  <div class="wbody">
+    <p id="sync-conflict-text">A newer cloud edit conflicts with this device.</p>
+    <div class="sync-actions">
+      <button class="btn solid" id="sync-keep" type="button">Keep this device</button>
+      <button class="btn" id="sync-cloud" type="button">Use cloud</button>
+    </div>
+  </div>
+</section>
+
+<section class="window" aria-labelledby="window-title">
+<div class="titlebar"><h2 class="t" id="window-title">Today</h2><span class="ctl" aria-hidden="true"><i>&ndash;</i><i>&#9633;</i><i>&times;</i></span></div>
+<div class="wbody">
 
 <div id="view-today">
+  <div class="meter-row">
+    <div class="meter" id="meter" aria-label="POWER completion today"></div>
+    <p class="hint">Tap a letter if you did it somewhere else. Tap again to bring the card back.</p>
+  </div>
   <div class="grid">
 
     <article class="card c4" data-k="p">
-      <div class="card-head"><h2>Pray</h2><span class="eyebrow">3&times; daily</span></div>
+      <div class="card-head"><span class="title"><span class="letter" aria-hidden="true">P</span><h2>Pray</h2></span><span class="eyebrow">3&times; daily</span></div>
       <div class="taps" id="pray-taps"></div>
-      <div class="foot"><span><span id="pray-count">0</span> of 3 today</span><button class="btn danger" data-clear="p" type="button">Clear</button></div>
+      <div class="foot"><span><span id="pray-count">0</span> of 3 today</span><button class="btn danger sm" data-clear="p" type="button">Clear</button></div>
     </article>
 
     <article class="card c8" data-k="o">
-      <div class="card-head"><h2>Observations</h2><span class="eyebrow">10 a day</span></div>
+      <div class="card-head"><span class="title"><span class="letter" aria-hidden="true">O</span><h2>Observations</h2></span><span class="eyebrow">10 a day</span></div>
       <div class="row">
         <input id="idea-input" type="text" aria-label="New observation" placeholder="What did you just notice?">
         <button class="btn solid" id="idea-add" type="button">Add</button>
@@ -338,14 +439,14 @@
       <p class="empty" id="idea-empty">Nothing yet. Anything you noticed counts, however small.</p>
       <div class="foot">
         <span><span id="idea-left">10</span> to go &middot; <span id="idea-week">0</span> this week</span>
-        <span class="button-group"><button class="btn danger" data-clear="o" type="button">Clear</button><button class="btn" id="idea-copy" type="button">Copy as .md</button></span>
+        <span class="button-group"><button class="btn danger sm" data-clear="o" type="button">Clear</button><button class="btn sm" id="idea-copy" type="button">Copy as .md</button></span>
       </div>
     </article>
 
     <article class="card c8" data-k="w">
-      <div class="card-head"><h2>Write</h2><span class="timer-wrap"><span class="eyebrow" id="timer" style="font-size:16px; letter-spacing:.04em; color:var(--ink)">10:00</span><button class="btn solid timer-button" id="timer-toggle" type="button" aria-label="Start timer" title="Start timer"></button></span></div>
+      <div class="card-head"><span class="title"><span class="letter" aria-hidden="true">W</span><h2>Write</h2></span><span class="timer-wrap"><span id="timer">10:00</span><button class="btn solid timer-button" id="timer-toggle" type="button" aria-label="Start timer" title="Start timer"></button></span></div>
       <div class="row"><input id="write-title" type="text" placeholder="What I'm writing about today" aria-label="What I'm writing about today"></div>
-      <textarea id="write-box" rows="8" placeholder="Start typing." style="margin-top:9px"></textarea>
+      <textarea id="write-box" rows="8" placeholder="Start typing." style="margin-top:8px"></textarea>
       <section class="drafts-panel">
         <div class="drafts-head"><p class="eyebrow">Saved drafts</p><span class="eyebrow" id="draft-count">0 drafts</span></div>
         <ol class="draft-list" id="draft-list"></ol>
@@ -354,66 +455,49 @@
       <div class="foot">
         <span><span id="word-count">0</span> words</span>
         <span class="button-group">
-          <button class="btn danger" data-clear="w" type="button">Clear</button>
-          <button class="btn" id="write-copy" type="button">Copy text</button>
-          <button class="btn" id="export" type="button">Download .md</button>
-          <button class="btn solid" id="draft-save" type="button">Save draft</button>
+          <button class="btn danger sm" data-clear="w" type="button">Clear</button>
+          <button class="btn sm" id="write-copy" type="button">Copy text</button>
+          <button class="btn sm" id="export" type="button">Download .md</button>
+          <button class="btn solid sm" id="draft-save" type="button">Save draft</button>
         </span>
       </div>
     </article>
 
     <article class="card c4" data-k="e">
-      <div class="card-head"><h2>Exercise</h2><span class="eyebrow">3+3 weekly</span></div>
+      <div class="card-head"><span class="title"><span class="letter" aria-hidden="true">E</span><h2>Exercise</h2></span><span class="eyebrow">3+3 weekly</span></div>
       <div class="exercise-set"><p class="eyebrow">Run</p><div class="taps" id="run-taps"></div></div>
       <div class="exercise-set"><p class="eyebrow">Lift</p><div class="taps" id="lift-taps"></div></div>
-      <div class="foot"><span><span id="run-count">0</span> runs &middot; <span id="lift-count">0</span> lifts</span><button class="btn danger" data-clear="e" type="button">Clear</button></div>
+      <div class="foot"><span><span id="run-count">0</span> runs &middot; <span id="lift-count">0</span> lifts</span><button class="btn danger sm" data-clear="e" type="button">Clear</button></div>
     </article>
 
     <article class="card c12" data-k="r">
-      <div class="card-head"><h2>Read</h2><span class="eyebrow">One chapter a day</span></div>
+      <div class="card-head"><span class="title"><span class="letter" aria-hidden="true">R</span><h2>Read</h2></span><span class="eyebrow">One chapter a day</span></div>
       <div class="selects">
         <select id="book" aria-label="Book"></select>
         <select id="chapter" aria-label="Chapter"></select>
         <button class="btn solid" id="read-done" type="button">Mark read</button>
       </div>
-      <section class="meditation" aria-labelledby="meditation-title">
-        <p class="eyebrow" id="meditation-title">Verse to meditate on</p>
-        <div class="meditation-form">
-          <select id="meditation-book" aria-label="Meditation verse book"></select>
-          <input id="meditation-chapter" type="number" min="1" inputmode="numeric" aria-label="Meditation verse chapter" placeholder="Chapter">
-          <input class="verse-range" id="meditation-range" type="text" inputmode="numeric" aria-label="Meditation verse or range" placeholder="Verse, e.g. 16 or 28-30">
-          <button class="btn solid" id="meditation-find" type="button">Find verse</button>
-        </div>
-        <p class="meditation-status" id="meditation-status" role="status" aria-live="polite"></p>
-        <div class="meditation-verse hidden" id="meditation-verse">
-          <div class="meditation-reference"><strong id="meditation-reference"></strong><span class="eyebrow">WEB</span></div>
-          <p class="meditation-text" id="meditation-text"></p>
-          <div class="meditation-actions"><button class="btn danger" id="meditation-clear" type="button">Clear verse</button></div>
-        </div>
-      </section>
     </article>
 
   </div>
 </div>
 
-<div id="view-week" class="hidden">
+<div id="view-week" class="view-single hidden">
   <div class="grid">
     <article class="card c12">
       <div class="card-head"><h2>This week</h2><span class="eyebrow" id="week-left"></span></div>
       <div class="week-panel" id="week-targets"></div>
       <div class="week-grid" id="week-grid"></div>
-      <div class="streaks" id="week-streaks"></div>
-      <p class="streak-best" id="streak-best"></p>
     </article>
   </div>
 </div>
 
-<div id="view-marriage" class="hidden">
+<div id="view-marriage" class="view-single hidden">
   <div class="grid">
     <article class="card c12">
       <div class="card-head"><h2>Marriage</h2><span class="eyebrow" id="mx-position"></span></div>
 
-      <div class="tabs mx-tabs" role="tablist">
+      <div class="mx-tabs" role="tablist">
         <button class="mx-tab" data-mx="prompt" role="tab" aria-selected="true">Prompt</button>
         <button class="mx-tab" data-mx="date" role="tab" aria-selected="false">Date night</button>
         <button class="mx-tab" data-mx="history" role="tab" aria-selected="false">History</button>
@@ -466,7 +550,7 @@
   </div>
 </div>
 
-<div id="view-bible" class="hidden">
+<div id="view-bible" class="view-single hidden">
   <div class="grid">
     <article class="card c12">
       <div class="card-head"><h2>Bible reading</h2><span class="eyebrow">66 books &middot; 1,189 chapters</span></div>
@@ -475,13 +559,45 @@
   </div>
 </div>
 
-<footer>
-  <span>dash.biv.xyz</span>
-  <span class="sync-status" id="sync-status" data-state="local"><span class="sync-dot" aria-hidden="true"></span><span id="sync-label">Local only</span></span>
-  <button class="btn sync-init hidden" id="sync-init" type="button">Use this device to initialize sync</button>
-</footer>
+</div>
+</section>
+</main>
+
+<aside class="side">
+  <section class="window" aria-labelledby="streaks-title">
+    <div class="titlebar"><h2 class="t" id="streaks-title">Streaks</h2><span class="ctl" aria-hidden="true"><i>&ndash;</i><i>&times;</i></span></div>
+    <div class="wbody">
+      <div class="streaks" id="week-streaks"></div>
+      <p class="streak-best" id="streak-best"></p>
+    </div>
+  </section>
+  <section class="window note meditation" aria-labelledby="meditation-title">
+    <div class="titlebar"><h2 class="t" id="meditation-title">Verse to meditate on</h2><span class="ctl" aria-hidden="true"><i>&times;</i></span></div>
+    <div class="wbody">
+      <div class="meditation-verse hidden" id="meditation-verse">
+        <div class="meditation-reference"><strong id="meditation-reference"></strong><span class="eyebrow">WEB</span></div>
+        <p class="meditation-text" id="meditation-text"></p>
+        <div class="meditation-actions"><button class="btn danger sm" id="meditation-clear" type="button">Clear verse</button></div>
+      </div>
+      <div class="meditation-form">
+        <select id="meditation-book" aria-label="Meditation verse book"></select>
+        <input id="meditation-chapter" type="number" min="1" inputmode="numeric" aria-label="Meditation verse chapter" placeholder="Ch.">
+        <input class="verse-range" id="meditation-range" type="text" inputmode="numeric" aria-label="Meditation verse or range" placeholder="Verse, e.g. 16 or 28-30">
+        <button class="btn solid" id="meditation-find" type="button">Find verse</button>
+      </div>
+      <p class="meditation-status" id="meditation-status" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+</aside>
 
 </div>
+
+<footer class="taskbar">
+  <span class="host">dash.biv.xyz</span>
+  <span class="spacer"></span>
+  <button class="btn sm sync-init hidden" id="sync-init" type="button">Use this device to initialize sync</button>
+  <span class="sync-status" id="sync-status" data-state="local"><span class="sync-dot" aria-hidden="true"></span><span id="sync-label">Local only</span></span>
+</footer>
 
 <script src="marriage-items.js"></script>
 <script>
@@ -1230,20 +1346,22 @@ function renderMeter(){
   m.querySelectorAll('.seg').forEach(b=>b.addEventListener('click',()=>toggle(b.dataset.k)));
 }
 
+function checkButton(text,label,on,onClick){
+  const b=document.createElement('button');
+  b.type='button';
+  b.className='check'+(on?' on':'');
+  b.setAttribute('aria-label',label);
+  b.setAttribute('aria-pressed',on);
+  const box=document.createElement('span');
+  box.className='box'; box.setAttribute('aria-hidden','true');
+  b.append(box,text);
+  b.addEventListener('click',onClick);
+  return b;
+}
 function taps(el,filled,labels,tap){
   el.innerHTML='';
   labels.forEach((lab,i)=>{
-    const col=document.createElement('div');
-    col.className='tapcol'+(i<filled?' on':'');
-    const b=document.createElement('button');
-    b.type='button';
-    b.className='dot'+(i<filled?' on':'');
-    b.setAttribute('aria-label',lab);
-    b.setAttribute('aria-pressed',i<filled);
-    b.addEventListener('click',()=>tap(i<filled?i:i+1));
-    const p=document.createElement('p');
-    p.className='lab'; p.textContent=lab;
-    col.append(b,p); el.appendChild(col);
+    el.appendChild(checkButton(String(i+1),lab,i<filled,()=>tap(i<filled?i:i+1)));
   });
 }
 // Exercise keeps taps(): a run is a run, so a count is the right model there.
@@ -1251,18 +1369,7 @@ function taps(el,filled,labels,tap){
 function toggles(el,flags,labels,tap){
   el.innerHTML='';
   labels.forEach((lab,i)=>{
-    const on=!!flags[i];
-    const col=document.createElement('div');
-    col.className='tapcol'+(on?' on':'');
-    const b=document.createElement('button');
-    b.type='button';
-    b.className='dot'+(on?' on':'');
-    b.setAttribute('aria-label',lab);
-    b.setAttribute('aria-pressed',on);
-    b.addEventListener('click',()=>tap(i));
-    const p=document.createElement('p');
-    p.className='lab'; p.textContent=lab;
-    col.append(b,p); el.appendChild(col);
+    el.appendChild(checkButton(lab,lab,!!flags[i],()=>tap(i)));
   });
 }
 function renderPray(){
@@ -1684,8 +1791,24 @@ document.querySelectorAll('.tab').forEach(tab=>{
   tab.addEventListener('click',()=>{
     document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected',t===tab));
     ['today','week','marriage','bible'].forEach(view=>$('view-'+view).classList.toggle('hidden',tab.dataset.view!==view));
+    $('window-title').textContent=tab.dataset.title;
   });
 });
+
+const THEME_KEY='power.theme.v1';
+function applyTheme(theme){
+  const light=theme==='light';
+  if(light) document.documentElement.dataset.theme='light';
+  else delete document.documentElement.dataset.theme;
+  $('theme-toggle').textContent=light?'Dark':'Light';
+  $('theme-toggle').setAttribute('aria-label',light?'Switch to dark theme':'Switch to light theme');
+}
+$('theme-toggle').addEventListener('click',()=>{
+  const next=document.documentElement.dataset.theme==='light'?'dark':'light';
+  store.set(THEME_KEY,next);
+  applyTheme(next);
+});
+applyTheme(store.get(THEME_KEY));
 
 function renderDashboard(){
   renderMeter(); renderPray(); renderRuns(); renderIdeas(); renderRead(); renderMeditationVerse(); renderDrafts();

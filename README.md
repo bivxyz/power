@@ -34,13 +34,13 @@ The app never grows a reading view, a search, or an archive. Obsidian already do
 
 **Exercise** — three run check-ins and three lifting check-ins. The 3+3 counts are weekly totals and clear themselves on Monday. Adding any run or lift marks Exercise complete for the current day.
 
-**Read** — book and chapter dropdowns covering all 66 books with correct chapter counts. Marking a chapter read checks it off in the Bible tab, advances to the next chapter, and rolls to the next book at the end. The card stays available so multiple chapters can be logged in one sitting. Chapter squares in the Bible tab can also be toggled directly for manual entry or correction without moving the current reading position. A compact **Verse to meditate on** lookup accepts a single verse or same-chapter range, retrieves its World English Bible text, and syncs the one saved passage across devices until it is replaced or cleared.
+**Read** — book and chapter dropdowns covering all 66 books with correct chapter counts. Marking a chapter read checks it off in the Bible tab, advances to the next chapter, and rolls to the next book at the end. The card stays available so multiple chapters can be logged in one sitting. Chapter squares in the Bible tab can also be toggled directly for manual entry or correction without moving the current reading position. A **Verse to meditate on** window beside the main one accepts a single verse or same-chapter range, retrieves its World English Bible text, and syncs the one saved passage across devices until it is replaced or cleared.
 
 ### Completion behavior
 
 Finishing a section mutes its card without disabling it. Completed cards remain visible and usable, while the gold POWER letters keep the day's completion state easy to scan.
 
-The **POWER letters** in the header are buttons. Tap one to mark a discipline done if it happened away from the dashboard. Tap it again to bring the card back.
+The **POWER letters** at the top of the Today window are keys. Tap one to mark a discipline done if it happened away from the dashboard. Tap it again to bring the card back.
 
 Completion fires once, on the transition (first prayer, tenth observation, timer hitting zero). Undo sets it back to false and it stays false; it will not silently re-complete itself just because a prayer is still ticked.
 
@@ -50,21 +50,21 @@ Two rollovers, on different clocks. At the first load after local midnight, all 
 
 ## The week
 
-A **Week** tab beside Today and Bible. Monday through Sunday, no paging.
+A **Week** view, opened from the desktop icons beside Today and Bible. Monday through Sunday, no paging.
 
 **Targets** come first, because they're the reason to open the page on a Thursday: observations, write minutes, runs, lifts, and chapters, each against a weekly goal with the days remaining in the corner. The numbers live in one `WEEK_TARGETS` object at the top of the script... change a goal on one line.
 
 **The grid** is five rows by seven days, and every cell is a toggle. Forgot to tick Read on Tuesday, tick it Tuesday. Future days are inert.
 
-One rule keeps that from getting confusing: **today is owned by the Today tab, every prior day is owned by history.** Clicking today's column in the grid runs the same code as tapping the letter in the header, timestamp and all. Clicking any earlier day writes straight to that day's record.
+One rule keeps that from getting confusing: **today is owned by the Today tab, every prior day is owned by history.** Clicking today's column in the grid runs the same code as tapping the letter key, timestamp and all. Clicking any earlier day writes straight to that day's record.
 
-**Streaks** are per letter, not one number for all five. An all-five streak would sit at zero permanently, because Exercise is 3+3 weekly and is false most days by design.
+**Streaks** are per letter, not one number for all five, and sit in their own window beside every view. An all-five streak would sit at zero permanently, because Exercise is 3+3 weekly and is false most days by design.
 
 ---
 
 ## Marriage
 
-A **Marriage** tab, separate from the five. It is not a POWER letter, it is not in the header meter, it is not a row in the week grid, and it has no streak.
+A **Marriage** view, separate from the five. It is not a POWER letter, it is not among the letter keys, it is not a row in the week grid, and it has no streak.
 
 It also never writes anything to send. There is no drafting of messages, no composing on my behalf, no model in the loop at any point. The feature surfaces a prompt; the writing is mine.
 
@@ -155,7 +155,7 @@ npx wrangler pages secret put SYNC_SECRET --project-name power
 
 `authenticated()` fails closed. With no `SYNC_SECRET` set it accepts `localhost` only, so an unconfigured deployment rejects everything rather than serving open. Comparison is over SHA-256 digests via `crypto.subtle.timingSafeEqual`, so a wrong passphrase cannot be narrowed by timing.
 
-A device with no passphrase, or the wrong one, gets a banner with a masked field and syncs nothing until it is right. The footer says the same thing; it will not claim "Synced" while it is blocked.
+A device with no passphrase, or the wrong one, gets a banner with a masked field and syncs nothing until it is right. The taskbar says the same thing; it will not claim "Synced" while it is blocked.
 
 For local development, put `SYNC_SECRET=...` in `.dev.vars`, which is gitignored. With no `.dev.vars`, `localhost` skips the check entirely.
 
@@ -169,9 +169,13 @@ The page carries `noindex`. Without Access the page shell is publicly reachable,
 
 ## Stack
 
-Plain HTML, CSS, and JavaScript on the client, with a small Pages Function and D1 database. Caveat and JetBrains Mono come from Google Fonts. Design tokens match [biv.xyz](https://biv.xyz).
+Plain HTML, CSS, and JavaScript on the client, with a small Pages Function and D1 database. IBM Plex Sans, JetBrains Mono and Caveat come from Google Fonts; Caveat is kept for the POWER letters only.
 
-Keyboard focus is visible, `prefers-reduced-motion` is respected, and the layout collapses to one column under 760px.
+The interface is a retro desktop: a menu bar on top, desktop icons for Today, Week, Marriage and Bible, one main window holding the current view, side windows for streaks and the meditation verse, and a taskbar showing sync state. Buttons are raised and press flat. A finished section keeps its panel usable and marks its title strip with gold hatching.
+
+Dark is the default. **Light** in the menu bar switches this device to the light theme; the choice is kept in `localStorage` under `power.theme.v1`, applied before first paint, and deliberately not synced. All colors are tokens on `:root`, with the light set under `[data-theme="light"]`.
+
+Keyboard focus is visible and `prefers-reduced-motion` is respected. Under 1060px the side windows move below the main one; under 760px everything stacks into one column and the desktop icons become a row across the top.
 
 ---
 
