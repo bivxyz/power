@@ -35,8 +35,11 @@ if (!script.includes('function letterStreak(k)') || !script.includes('function l
 if (!script.includes('const WEEK_TARGETS=') || !html.includes('id="week-targets"')) throw new Error('Weekly targets are missing');
 if (!script.includes('renderWeek()') || !script.includes('renderTimer(); renderCards(); renderWeek()')) throw new Error('Week view is not in the render chain');
 
-if (!script.includes('const IDEA_CAP=5;')) throw new Error('Idea cap is not five');
-if (/state\.ideas\.length>=10|10-n|31\+n/.test(script)) throw new Error('Hardcoded ten-idea limit or sample week count survives');
+if (!script.includes('const IDEA_CAP=10;')) throw new Error('Observation cap is not ten');
+if (!html.includes('<h2>Observations</h2>') || /<h2>Organize<\/h2>/.test(html)) throw new Error('Organize card was not renamed to Observations');
+if (!script.includes("state.ideas.push({text:v, at:clock()})") || !script.includes('const obsText=')) throw new Error('Observations are not timestamped or legacy strings are not handled');
+if (!script.includes('`observations: ${state.ideas.length}/${IDEA_CAP}`') || !script.includes("'## Observations'")) throw new Error('Daily note export does not use Observations');
+if (/state\.ideas\.length>=10|10-n|31\+n/.test(script)) throw new Error('Hardcoded observation limit or sample week count survives');
 if (/placeholder="[^"]*Shopify|Done for today/.test(html + script)) throw new Error('Idea placeholder text survives');
 
 if (!html.includes('id="write-title"') || !script.includes("'writing','writeTitle'")) throw new Error('Write subject line is missing or unsynchronized');

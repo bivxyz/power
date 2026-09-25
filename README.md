@@ -2,7 +2,7 @@
 
 A local-first daily discipline dashboard with private cross-device sync.
 
-**P**ray · **O**rganize · **W**rite · **E**xercise · **R**ead
+**P**ray · **O**bserve · **W**rite · **E**xercise · **R**ead
 
 Runs at `dash.biv.xyz`. The interface is a single vanilla-JavaScript page; a Cloudflare Pages Function and D1 provide sync.
 
@@ -28,21 +28,21 @@ The app never grows a reading view, a search, or an archive. Obsidian already do
 
 **Pray** — morning, midday, night, each toggling on its own. Tapping Night marks Night, not all three; they are distinct times, not a running count. One prayer is enough to complete P for the day, because three is the target and one is still a day I prayed.
 
-**Organize** — the idea machine. Five slots a day. Input disables at five. Four and five are the ones worth having, which is the whole point of the number.
+**Observations** — ten a day. Anything noticed counts, however small. Ten random observations through the day is easier to reach than ten ideas. Each one is stamped with the 24-hour time it was logged. Input disables at ten, and the tenth completes O. **Copy as .md** puts them on the clipboard as a timestamped bullet list, the same block the daily note uses. This card was called Organize and capped at five ideas; entries saved before the rename are plain strings, and they still render and export, just without a time. The stored field is still named `ideas`, so the rename needed no sync or D1 change.
 
 **Write** — ten minutes. A subject line on top, the body underneath. Typing in the body starts the timer automatically, while play/pause remains available; the subject never starts it. A saved draft keeps its subject and lists under it. Save a thought as a timestamped draft to clear the writing box and continue it later from any synced device.
 
 **Exercise** — three run check-ins and three lifting check-ins. The 3+3 counts are weekly totals and clear themselves on Monday. Adding any run or lift marks Exercise complete for the current day.
 
-**Read** — book and chapter dropdowns covering all 66 books with correct chapter counts. Marking a chapter read checks it off in the Bible tab, advances to the next chapter, and rolls to the next book at the end. The card stays available so multiple chapters can be logged in one sitting. Chapter squares in the Bible tab can also be toggled directly for manual entry or correction without moving the current reading position. A compact **Verse to meditate on** lookup accepts a single verse or same-chapter range, retrieves its World English Bible text, and syncs the one saved passage across devices until it is replaced or cleared.
+**Read** — book and chapter dropdowns covering all 66 books with correct chapter counts. Marking a chapter read checks it off in the Bible tab, advances to the next chapter, and rolls to the next book at the end. The card stays available so multiple chapters can be logged in one sitting. Chapter squares in the Bible tab can also be toggled directly for manual entry or correction without moving the current reading position. A **Verse to meditate on** window beside the main one accepts a single verse or same-chapter range, retrieves its World English Bible text, and syncs the one saved passage across devices until it is replaced or cleared.
 
 ### Completion behavior
 
 Finishing a section mutes its card without disabling it. Completed cards remain visible and usable, while the gold POWER letters keep the day's completion state easy to scan.
 
-The **POWER letters** in the header are buttons. Tap one to mark a discipline done if it happened away from the dashboard. Tap it again to bring the card back.
+The **POWER letters** at the top of the Today window are keys. Tap one to mark a discipline done if it happened away from the dashboard. Tap it again to bring the card back.
 
-Completion fires once, on the transition (first prayer, fifth idea, timer hitting zero). Undo sets it back to false and it stays false; it will not silently re-complete itself just because a prayer is still ticked.
+Completion fires once, on the transition (first prayer, tenth observation, timer hitting zero). Undo sets it back to false and it stays false; it will not silently re-complete itself just because a prayer is still ticked.
 
 Two rollovers, on different clocks. At the first load after local midnight, all five POWER completion letters reset for the new day; entered module data and the weekly exercise totals are preserved, because a day starting fresh is not the same as a week starting fresh. At the first load in a new week, Monday, the run and lift counts clear. Either one fires on its own, so a dashboard left open across Sunday midnight still rolls the week without needing the day to change. An open dashboard also checks for a date change when it becomes visible and once per minute. **Clear day** provides a confirmed manual reset for prayers, ideas, writing, its timer, and POWER completion while preserving weekly exercise totals, Bible progress, and saved drafts.
 
@@ -50,27 +50,27 @@ Two rollovers, on different clocks. At the first load after local midnight, all 
 
 ## The week
 
-A **Week** tab beside Today and Bible. Monday through Sunday, no paging.
+A **Week** view, opened from the desktop icons beside Today and Bible. Monday through Sunday, no paging.
 
-**Targets** come first, because they're the reason to open the page on a Thursday: ideas, write minutes, runs, lifts, and chapters, each against a weekly goal with the days remaining in the corner. The numbers live in one `WEEK_TARGETS` object at the top of the script... change a goal on one line.
+**Targets** come first, because they're the reason to open the page on a Thursday: observations, write minutes, runs, lifts, and chapters, each against a weekly goal with the days remaining in the corner. The numbers live in one `WEEK_TARGETS` object at the top of the script... change a goal on one line.
 
 **The grid** is five rows by seven days, and every cell is a toggle. Forgot to tick Read on Tuesday, tick it Tuesday. Future days are inert.
 
-One rule keeps that from getting confusing: **today is owned by the Today tab, every prior day is owned by history.** Clicking today's column in the grid runs the same code as tapping the letter in the header, timestamp and all. Clicking any earlier day writes straight to that day's record.
+One rule keeps that from getting confusing: **today is owned by the Today tab, every prior day is owned by history.** Clicking today's column in the grid runs the same code as tapping the letter key, timestamp and all. Clicking any earlier day writes straight to that day's record.
 
-**Streaks** are per letter, not one number for all five. An all-five streak would sit at zero permanently, because Exercise is 3+3 weekly and is false most days by design.
+**Streaks** are per letter, not one number for all five, and sit in their own window beside every view. An all-five streak would sit at zero permanently, because Exercise is 3+3 weekly and is false most days by design.
 
 ---
 
 ## Marriage
 
-A **Marriage** tab, separate from the five. It is not a POWER letter, it is not in the header meter, it is not a row in the week grid, and it has no streak.
+A **Marriage** view, separate from the five. It is not a POWER letter, it is not among the letter keys, it is not a row in the week grid, and it has no streak.
 
 It also never writes anything to send. There is no drafting of messages, no composing on my behalf, no model in the loop at any point. The feature surfaces a prompt; the writing is mine.
 
 **Prompt.** One item a day from the Gottman 7-week fondness and admiration exercise, in the printed order. The task shows big, the belief statement sits under it as the subhead, and one box takes the response. Saving records it and holds the day; the next item appears tomorrow, not on a second save.
 
-**Date night.** The Gottman items are prompts, not date ideas, so the ideas here are mine. A text field takes them the way Organize does, and they collect in a pool that persists. Each month I drag three out of the pool into a shortlist, pick one, and note how it went and when. A picked idea is marked with the month it was used and dimmed in the pool rather than deleted, because it still has to render in History.
+**Date night.** The Gottman items are prompts, not date ideas, so the ideas here are mine. A text field takes them the way Observations does, and they collect in a pool that persists. Each month I drag three out of the pool into a shortlist, pick one, and note how it went and when. A picked idea is marked with the month it was used and dimmed in the pool rather than deleted, because it still has to render in History.
 
 Dragging is built on pointer events rather than HTML5 drag-and-drop, which never fires on touch and would have left the feature dead on a phone. Tapping an idea sends it to the first free slot, for when a drag misses.
 
@@ -92,7 +92,7 @@ Dashboard fields, Bible chapters, drafts, **each history day**, and **each marri
 
 The first deployment starts with an empty D1 database. On the desktop holding the authoritative `power.v2` state, select **Use this device to initialize sync** once. Other devices then adopt that cloud state after passing Cloudflare Access.
 
-Pray, Organize, Write, and Exercise each have a confirmed Clear action for routine cleanup. Read intentionally keeps its selection because it tracks the next chapter in an ongoing sequence.
+Pray, Observations, Write, and Exercise each have a confirmed Clear action for routine cleanup. Read intentionally keeps its selection because it tracks the next chapter in an ongoing sequence.
 
 Saved state is merged over a defaults object rather than replacing it, so adding fields to the schema won't break existing installs. Bump the key if the shape changes in a way that matters.
 
@@ -104,7 +104,7 @@ Saved state is merged over a defaults object rather than replacing it, so adding
 ---
 date: 2026-08-05
 pray: 3/3
-organize: 5/5
+observations: 10/10
 write: 10m
 exercise: 2/3
 read_next: Mark 5
@@ -112,15 +112,15 @@ power: POWER
 title: "schema scoring is not a moat"
 ---
 
-## Ideas
-1. Deterministic schema scoring for Shopify
+## Observations
+- 07:12 Coffee shop line was longer for mobile orders than walk-ins
 ...
 
 ## schema scoring is not a moat
 ...
 ```
 
-There are also copy buttons on Organize and Write for a faster paste. Both paths exist on purpose — keep whichever one you actually use after a week and delete the other.
+There are also copy buttons on Observations and Write for a faster paste. Both paths exist on purpose — keep whichever one you actually use after a week and delete the other.
 
 ---
 
@@ -155,7 +155,7 @@ npx wrangler pages secret put SYNC_SECRET --project-name power
 
 `authenticated()` fails closed. With no `SYNC_SECRET` set it accepts `localhost` only, so an unconfigured deployment rejects everything rather than serving open. Comparison is over SHA-256 digests via `crypto.subtle.timingSafeEqual`, so a wrong passphrase cannot be narrowed by timing.
 
-A device with no passphrase, or the wrong one, gets a banner with a masked field and syncs nothing until it is right. The footer says the same thing; it will not claim "Synced" while it is blocked.
+A device with no passphrase, or the wrong one, gets a banner with a masked field and syncs nothing until it is right. The taskbar says the same thing; it will not claim "Synced" while it is blocked.
 
 For local development, put `SYNC_SECRET=...` in `.dev.vars`, which is gitignored. With no `.dev.vars`, `localhost` skips the check entirely.
 
@@ -163,15 +163,19 @@ This replaced Cloudflare Access. Access worked on the desktop but its one-time P
 
 **If an Access application is still in front of the hostname it must be removed**, or the API keeps 302ing to a login page and the passphrase never arrives. The app detects that case specifically and says so.
 
-The page carries `noindex`. Without Access the page shell is publicly reachable, but it holds no data: prayer counts, writing and ideas all live behind the passphrase.
+The page carries `noindex`. Without Access the page shell is publicly reachable, but it holds no data: prayer counts, writing and observations all live behind the passphrase.
 
 ---
 
 ## Stack
 
-Plain HTML, CSS, and JavaScript on the client, with a small Pages Function and D1 database. Caveat and JetBrains Mono come from Google Fonts. Design tokens match [biv.xyz](https://biv.xyz).
+Plain HTML, CSS, and JavaScript on the client, with a small Pages Function and D1 database. IBM Plex Sans, JetBrains Mono and Caveat come from Google Fonts; Caveat is kept for the POWER letters only.
 
-Keyboard focus is visible, `prefers-reduced-motion` is respected, and the layout collapses to one column under 760px.
+The interface is a retro desktop: a menu bar on top, desktop icons for Today, Week, Marriage and Bible, one main window holding the current view, side windows for streaks and the meditation verse, and a taskbar showing sync state. Buttons are raised and press flat. A finished section keeps its panel usable and marks its title strip with gold hatching.
+
+Dark is the default. **Light** in the menu bar switches this device to the light theme; the choice is kept in `localStorage` under `power.theme.v1`, applied before first paint, and deliberately not synced. All colors are tokens on `:root`, with the light set under `[data-theme="light"]`.
+
+Keyboard focus is visible and `prefers-reduced-motion` is respected. Under 1060px the side windows move below the main one; under 760px everything stacks into one column and the desktop icons become a row across the top.
 
 ---
 
