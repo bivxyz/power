@@ -170,9 +170,23 @@
   .pip.on{background:var(--gold); border-color:var(--edge)}
 
   .ideas{list-style:none; margin-top:12px; font-size:13.5px}
-  .ideas li{display:flex; gap:12px; padding:6px 0; border-top:1px dashed var(--line)}
+  .ideas li{display:flex; gap:9px; padding:7px 0; border-top:1px dashed var(--line)}
   .ideas li:first-child{border-top:none}
   .ideas .n{font-family:var(--mono); font-size:12px; color:var(--dim); padding-top:1px; font-variant-numeric:tabular-nums; flex:0 0 auto}
+  .obs-row{align-items:flex-start; position:relative; transition:background-color .14s, box-shadow .14s}
+  .obs-row.drop-before{box-shadow:inset 0 3px 0 var(--gold)}
+  .obs-row.drop-after{box-shadow:inset 0 -3px 0 var(--gold)}
+  .obs-grip{appearance:none; border:0; background:none; color:var(--dim); padding:1px 2px; cursor:grab; touch-action:none; font-size:16px; line-height:1}
+  .obs-grip:hover,.obs-grip:focus-visible{color:var(--gold-ink)}
+  .obs-copy{flex:1; min-width:0; overflow-wrap:anywhere}
+  .obs-actions{display:flex; gap:4px; flex:0 0 auto}
+  .icon-btn{width:27px; height:27px; padding:5px; display:grid; place-items:center}
+  .icon-btn svg{width:14px; height:14px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round}
+  .obs-drag{max-width:min(360px,75vw)}
+  .undo-toast{position:fixed; right:18px; bottom:58px; z-index:70; display:flex; align-items:center; gap:14px;
+    padding:10px 12px; border:1.5px solid var(--edge); border-radius:7px; background:var(--win); box-shadow:3px 3px 0 var(--shadow); font-size:13px}
+  .undo-toast .btn{padding:5px 9px}
+  @media(max-width:540px){.obs-row{flex-wrap:wrap}.obs-copy{flex-basis:calc(100% - 55px)}.obs-actions{margin-left:27px}.undo-toast{left:18px; right:18px; justify-content:space-between}}
   .empty{margin-top:14px; font-size:13px; color:var(--dim); max-width:46ch}
 
   .drafts-panel{margin-top:14px; padding-top:12px; border-top:1px dashed var(--line)}
@@ -438,7 +452,7 @@
       <ol class="ideas" id="idea-list"></ol>
       <p class="empty" id="idea-empty">Nothing yet. Anything you noticed counts, however small.</p>
       <div class="foot">
-        <span><span id="idea-left">10</span> to go &middot; <span id="idea-week">0</span> this week</span>
+        <span><span id="idea-captured">0</span> captured &middot; <span id="idea-kept">0</span> kept &middot; <span id="idea-week">0</span> this week</span>
         <span class="button-group"><button class="btn danger sm" data-clear="o" type="button">Clear</button><button class="btn sm" id="idea-copy" type="button">Copy as .md</button></span>
       </div>
     </article>
@@ -592,6 +606,10 @@
 
 </div>
 
+<div class="undo-toast hidden" id="obs-undo" role="status" aria-live="polite">
+  <span>Observation removed.</span><button class="btn sm" id="obs-undo-btn" type="button">Undo</button>
+</div>
+
 <footer class="taskbar">
   <span class="host">dash.biv.xyz</span>
   <span class="spacer"></span>
@@ -628,7 +646,7 @@ const parseDay=key=>{const [y,m,d]=key.split('-').map(Number); return new Date(y
 const shiftDay=(key,n)=>{const d=parseDay(key); d.setDate(d.getDate()+n); return dayKey(d)};
 const weekStart=(d=new Date())=>{const m=new Date(d); m.setDate(m.getDate()-((m.getDay()+6)%7)); return dayKey(m)};
 const DEFAULTS={
-  prayers:[false,false,false], runs:0, lifts:0, bookIdx:40, chapter:4, readChapters:[], drafts:[], ideas:[], writing:'', writeTitle:'', writeSeconds:0,
+  prayers:[false,false,false], runs:0, lifts:0, bookIdx:40, chapter:4, readChapters:[], drafts:[], ideas:[], observationsCaptured:0, writing:'', writeTitle:'', writeSeconds:0,
   meditationVerse:null, chaptersToday:0, history:{},
   marriage:{index:0, pass:1, answeredOn:null, ideas:[], dates:[]}, marriageResponses:[],
   day:null, week:null,
@@ -658,6 +676,7 @@ const saved=store.get(KEY)||{};
 const state={
   ...DEFAULTS, ...saved,
   ideas:Array.isArray(saved.ideas)?saved.ideas:[],
+  observationsCaptured:Number.isInteger(saved.observationsCaptured)&&saved.observationsCaptured>=0?saved.observationsCaptured:(Array.isArray(saved.ideas)?saved.ideas.length:0),
   readChapters:Array.isArray(saved.readChapters)?saved.readChapters:[],
   drafts:Array.isArray(saved.drafts)?saved.drafts:[],
   prayers:normalizePrayers(saved.prayers),
@@ -684,7 +703,7 @@ function rollDailyState(){
   state.chaptersToday=0;
   state.seen={
     p:prayerCount()>=1,
-    o:state.ideas.length>=IDEA_CAP,
+    o:state.observationsCaptured>=IDEA_CAP,
     w:state.writeSeconds>=600,
     e:false,
     r:false
@@ -741,7 +760,7 @@ function subDiff(local,base){
   return out;
 }
 
-const SYNC_FIELDS=['prayers','runs','lifts','bookIdx','chapter','ideas','writing','writeTitle','writeSeconds','meditationVerse','chaptersToday','marriage','day','week','done','seen','at'];
+const SYNC_FIELDS=['prayers','runs','lifts','bookIdx','chapter','ideas','observationsCaptured','writing','writeTitle','writeSeconds','meditationVerse','chaptersToday','marriage','day','week','done','seen','at'];
 let syncKey=store.get(KEY_STORE)||'';
 let syncInfo=store.get(SYNC_KEY)||{};
 let cloudRevision=Number.isInteger(syncInfo.revision)?syncInfo.revision:0;
@@ -832,7 +851,7 @@ function hasPatch(patch){ return Object.keys(patch.changes).length||Object.keys(
 function mirrorToday(){
   if(!state.day) return;
   state.history[state.day]={...state.done,
-    ideas:state.ideas.length, writeSeconds:state.writeSeconds, chapters:state.chaptersToday};
+    ideas:state.observationsCaptured, writeSeconds:state.writeSeconds, chapters:state.chaptersToday};
 }
 function save(){
   mirrorToday();
@@ -876,6 +895,11 @@ function applyCloud(cloud,preserveLocal){
   state.readChapters=Array.isArray(cloud.state.readChapters)?[...new Set(cloud.state.readChapters)]:[];
   state.drafts=Array.isArray(cloud.state.drafts)?clone(cloud.state.drafts):[];
   state.history=cloud.state.history&&typeof cloud.state.history==='object'?clone(cloud.state.history):{};
+  if(!Number.isInteger(state.observationsCaptured)||state.observationsCaptured<0){
+    state.observationsCaptured=state.ideas.length;
+  } else if(!('observationsCaptured' in cloud.state)){
+    state.observationsCaptured=Math.max(state.observationsCaptured,state.ideas.length);
+  }
   state.marriageResponses=Array.isArray(cloud.state.marriageResponses)?clone(cloud.state.marriageResponses):[];
   cloudBaseline=clone(cloud.state);
   cloudRevision=cloud.revision;
@@ -975,7 +999,7 @@ async function startCloudSync(){
 
 const natural={
   p:()=>prayerCount()>=1,
-  o:()=>state.ideas.length>=IDEA_CAP,
+  o:()=>state.observationsCaptured>=IDEA_CAP,
   w:()=>state.writeSeconds>=600,
   e:()=>false,
   r:()=>false
@@ -1004,7 +1028,7 @@ function weekKeys(){
 }
 function dayRow(key){
   if(key===state.day) return {...state.done,
-    ideas:state.ideas.length, writeSeconds:state.writeSeconds, chapters:state.chaptersToday};
+    ideas:state.observationsCaptured, writeSeconds:state.writeSeconds, chapters:state.chaptersToday};
   return state.history[key]||{};
 }
 function weekStats(){
@@ -1402,27 +1426,141 @@ const obsMarkdown=()=>state.ideas.map(o=>`- ${obsAt(o)?obsAt(o)+' ':''}${obsText
 function addIdea(){
   const el=$('idea-input');
   const v=el.value.trim();
-  if(!v||state.ideas.length>=IDEA_CAP) return;
+  if(!v) return;
   state.ideas.push({text:v, at:clock()});
+  state.observationsCaptured++;
   el.value='';
   sync();
-  if(state.ideas.length<IDEA_CAP) el.focus();
+  el.focus();
 }
 $('write-title').addEventListener('input',e=>{ state.writeTitle=e.target.value; save() });
 $('idea-add').addEventListener('click',addIdea);
 $('idea-input').addEventListener('keydown',e=>{ if(e.key==='Enter'){e.preventDefault(); addIdea()} });
 
+const obsIcon={
+  copy:'<svg viewBox="0 0 18 18" aria-hidden="true"><rect x="6" y="6" width="9" height="9" rx="1"/><path d="M3 12V4a1 1 0 0 1 1-1h8"/></svg>',
+  subject:'<svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 4h12M3 9h8M3 14h5"/><path d="m12 12 3 2-3 2"/></svg>',
+  remove:'<svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 5h12M7 5V3h4v2M6 7v7h6V7M8 8.5v4M10 8.5v4"/></svg>'
+};
+let removedObservation=null, obsUndoTimer=null, obsDrag=null;
+function observationButton(action,index,label,icon,extra=''){
+  return `<button class="btn icon-btn${extra}" type="button" data-obs-${action}="${index}" aria-label="${label}" title="${label}">${icon}</button>`;
+}
+function dismissObservationUndo(){
+  clearTimeout(obsUndoTimer); obsUndoTimer=null; removedObservation=null;
+  $('obs-undo').classList.add('hidden');
+}
+function removeObservation(index){
+  if(!state.ideas[index]) return;
+  dismissObservationUndo();
+  const [observation]=state.ideas.splice(index,1);
+  removedObservation={observation,index};
+  sync();
+  $('obs-undo').classList.remove('hidden');
+  obsUndoTimer=setTimeout(dismissObservationUndo,5000);
+}
+function undoObservationRemoval(){
+  if(!removedObservation) return;
+  const {observation,index}=removedObservation;
+  clearTimeout(obsUndoTimer); obsUndoTimer=null; removedObservation=null;
+  state.ideas.splice(Math.min(index,state.ideas.length),0,observation);
+  $('obs-undo').classList.add('hidden');
+  sync();
+}
+function copyObservation(index,btn){
+  const text=obsText(state.ideas[index]);
+  if(!text) return;
+  const done=()=>{const label=btn.getAttribute('aria-label'); btn.classList.add('on'); btn.setAttribute('aria-label','Copied'); btn.title='Copied'; setTimeout(()=>{btn.classList.remove('on'); btn.setAttribute('aria-label',label); btn.title=label},1200)};
+  if(navigator.clipboard&&window.isSecureContext) navigator.clipboard.writeText(text).then(done).catch(()=>{if(legacyCopy(text)) done()});
+  else if(legacyCopy(text)) done();
+}
+function observationToSubject(index){
+  const text=obsText(state.ideas[index]);
+  if(!text) return;
+  state.writeTitle=text;
+  $('write-title').value=text;
+  sync();
+  const title=$('write-title');
+  title.closest('.card')?.scrollIntoView({behavior:'smooth',block:'center'});
+  title.focus(); title.select();
+}
+function reorderObservation(from,target,after=false){
+  if(from===target||from<0||target<0||from>=state.ideas.length||target>=state.ideas.length) return;
+  const [item]=state.ideas.splice(from,1);
+  let insert=target+(after?1:0);
+  if(from<insert) insert--;
+  insert=Math.max(0,Math.min(insert,state.ideas.length));
+  state.ideas.splice(insert,0,item);
+  sync();
+}
+function moveObservationKey(index,delta){
+  const target=index+delta;
+  if(target<0||target>=state.ideas.length) return;
+  [state.ideas[index],state.ideas[target]]=[state.ideas[target],state.ideas[index]];
+  sync();
+  requestAnimationFrame(()=>document.querySelector(`[data-obs-grip="${target}"]`)?.focus());
+}
+function observationRowUnder(x,y){return document.elementFromPoint(x,y)?.closest('[data-obs-index]')||null}
+function clearObservationDrop(){
+  document.querySelectorAll('.obs-row.drop-before,.obs-row.drop-after').forEach(row=>row.classList.remove('drop-before','drop-after'));
+}
+function startObservationDrag(event){
+  if(event.button>0) return;
+  const from=Number(event.currentTarget.dataset.obsGrip);
+  if(!state.ideas[from]) return;
+  event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId);
+  const ghost=document.createElement('div'); ghost.className='mx-drag obs-drag'; ghost.textContent=obsText(state.ideas[from]); document.body.appendChild(ghost);
+  obsDrag={from,ghost,grip:event.currentTarget,pointerId:event.pointerId,target:null,after:false};
+  moveObservationDrag(event);
+  event.currentTarget.addEventListener('pointermove',moveObservationDrag);
+  event.currentTarget.addEventListener('pointerup',endObservationDrag);
+  event.currentTarget.addEventListener('pointercancel',cancelObservationDrag);
+}
+function moveObservationDrag(event){
+  if(!obsDrag) return;
+  obsDrag.ghost.style.left=(event.clientX+12)+'px'; obsDrag.ghost.style.top=(event.clientY-14)+'px';
+  clearObservationDrop();
+  const row=observationRowUnder(event.clientX,event.clientY);
+  obsDrag.target=row?Number(row.dataset.obsIndex):null;
+  obsDrag.after=Boolean(row&&event.clientY>row.getBoundingClientRect().top+row.offsetHeight/2);
+  row?.classList.add(obsDrag.after?'drop-after':'drop-before');
+}
+function teardownObservationDrag(){
+  if(!obsDrag) return null;
+  const done={from:obsDrag.from,target:obsDrag.target,after:obsDrag.after};
+  obsDrag.ghost.remove(); clearObservationDrop();
+  obsDrag.grip.removeEventListener('pointermove',moveObservationDrag); obsDrag.grip.removeEventListener('pointerup',endObservationDrag); obsDrag.grip.removeEventListener('pointercancel',cancelObservationDrag);
+  try{obsDrag.grip.releasePointerCapture(obsDrag.pointerId)}catch{}
+  obsDrag=null; return done;
+}
+function endObservationDrag(){const done=teardownObservationDrag(); if(done&&done.target!==null) reorderObservation(done.from,done.target,done.after)}
+function cancelObservationDrag(){teardownObservationDrag()}
+$('obs-undo-btn').addEventListener('click',undoObservationRemoval);
+
 function renderIdeas(){
   const n=state.ideas.length;
-  $('idea-pips').innerHTML=Array.from({length:IDEA_CAP},(_,i)=>`<span class="pip ${i<n?'on':''}"></span>`).join('');
+  const captured=state.observationsCaptured;
+  $('idea-pips').innerHTML=Array.from({length:IDEA_CAP},(_,i)=>`<span class="pip ${i<captured?'on':''}"></span>`).join('');
   $('idea-list').innerHTML=state.ideas.map((o,i)=>
-    `<li><span class="n">${obsAt(o)||String(i+1).padStart(2,'0')}</span><span>${esc(obsText(o))}</span></li>`).join('');
+    `<li class="obs-row" data-obs-index="${i}">
+      <button class="obs-grip" type="button" data-obs-grip="${i}" aria-label="Move observation ${i+1}; use arrow keys or drag" title="Drag to reorder">⠿</button>
+      <span class="n">${obsAt(o)||String(i+1).padStart(2,'0')}</span><span class="obs-copy">${esc(obsText(o))}</span>
+      <span class="obs-actions">${observationButton('copy',i,'Copy observation',obsIcon.copy)}${observationButton('subject',i,'Send observation to Write subject',obsIcon.subject)}${observationButton('remove',i,'Remove observation',obsIcon.remove,' danger')}</span>
+    </li>`).join('');
+  $('idea-list').querySelectorAll('[data-obs-copy]').forEach(btn=>btn.addEventListener('click',()=>copyObservation(Number(btn.dataset.obsCopy),btn)));
+  $('idea-list').querySelectorAll('[data-obs-subject]').forEach(btn=>btn.addEventListener('click',()=>observationToSubject(Number(btn.dataset.obsSubject))));
+  $('idea-list').querySelectorAll('[data-obs-remove]').forEach(btn=>btn.addEventListener('click',()=>removeObservation(Number(btn.dataset.obsRemove))));
+  $('idea-list').querySelectorAll('[data-obs-grip]').forEach(grip=>{
+    grip.addEventListener('pointerdown',startObservationDrag);
+    grip.addEventListener('keydown',event=>{if(event.key==='ArrowUp'||event.key==='ArrowDown'){event.preventDefault(); moveObservationKey(Number(grip.dataset.obsGrip),event.key==='ArrowUp'?-1:1)}});
+  });
   $('idea-empty').classList.toggle('hidden',n>0);
-  $('idea-left').textContent=IDEA_CAP-n;
+  $('idea-captured').textContent=captured;
+  $('idea-kept').textContent=n;
   $('idea-week').textContent=weekStats().ideas;
-  $('idea-add').disabled=n>=IDEA_CAP;
-  $('idea-input').disabled=n>=IDEA_CAP;
-  $('idea-input').placeholder=n>=IDEA_CAP?'Ten for today':'What did you just notice?';
+  $('idea-add').disabled=false;
+  $('idea-input').disabled=false;
+  $('idea-input').placeholder='What did you just notice?';
   $('idea-copy').disabled=n===0;
 }
 
@@ -1581,7 +1719,7 @@ const CLEAR_PROMPTS={
 function clearModule(k){
   if(!confirm(CLEAR_PROMPTS[k])) return;
   if(k==='p') state.prayers=normalizePrayers(0);
-  if(k==='o') state.ideas=[];
+  if(k==='o'){state.ideas=[]; state.observationsCaptured=0; dismissObservationUndo()}
   if(k==='w'){
     resetWriting();
   }
@@ -1594,6 +1732,7 @@ function clearDay(){
   if(!confirm("Clear today's prayers, observations, writing, timer, and POWER completion? Weekly exercise totals, Bible progress, and saved drafts will stay.")) return;
   state.prayers=normalizePrayers(0);
   state.ideas=[];
+  state.observationsCaptured=0; dismissObservationUndo();
   resetWriting();
   state.day=localDay();
   state.week=weekStart();
@@ -1722,7 +1861,7 @@ function renderCards(){
 $('export').addEventListener('click',()=>{
   const d=new Date().toISOString().slice(0,10);
   const title=state.writeTitle.trim();
-  const md=['---',`date: ${d}`,`pray: ${prayerCount()}/3`,`observations: ${state.ideas.length}/${IDEA_CAP}`,
+  const md=['---',`date: ${d}`,`pray: ${prayerCount()}/3`,`observations: ${state.observationsCaptured}/${IDEA_CAP}`,
     `write: ${Math.floor(state.writeSeconds/60)}m`,`runs: ${state.runs}/3`,`lifts: ${state.lifts}/3`,
     `read_next: ${BIBLE[state.bookIdx][0]} ${state.chapter}`,
     `power: ${LETTERS.filter(l=>state.done[l.k]).map(l=>l.L).join('')||'none'}`,

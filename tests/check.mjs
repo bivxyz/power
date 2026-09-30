@@ -28,6 +28,7 @@ if (!script.includes('state.done={...DEFAULTS.done}') || !script.includes('state
 if (!html.includes('id="meditation-find"') || !html.includes('id="meditation-verse"')) throw new Error('Meditation verse controls are missing');
 if (!script.includes("'meditationVerse','chaptersToday','marriage','day','week'") || !script.includes('async function findMeditationVerse()')) throw new Error('Meditation verse lookup or synchronization is missing');
 const sync = fs.readFileSync(new URL('../functions/api/sync.js', import.meta.url), 'utf8');
+if (!sync.includes("'observationsCaptured'")) throw new Error('Observation capture count is not accepted by the sync API');
 
 if (!html.includes('data-view="week"') || !html.includes('id="view-week"') || !html.includes('id="week-grid"')) throw new Error('Week view markup is missing');
 if (!script.includes('function renderWeek()') || !script.includes('function mirrorToday()') || !script.includes('function weekKeys()')) throw new Error('Week rendering or history mirroring is missing');
@@ -38,9 +39,19 @@ if (!script.includes('renderWeek()') || !script.includes('renderTimer(); renderC
 if (!script.includes('const IDEA_CAP=10;')) throw new Error('Observation cap is not ten');
 if (!html.includes('<h2>Observations</h2>') || /<h2>Organize<\/h2>/.test(html)) throw new Error('Organize card was not renamed to Observations');
 if (!script.includes("state.ideas.push({text:v, at:clock()})") || !script.includes('const obsText=')) throw new Error('Observations are not timestamped or legacy strings are not handled');
-if (!script.includes('`observations: ${state.ideas.length}/${IDEA_CAP}`') || !script.includes("'## Observations'")) throw new Error('Daily note export does not use Observations');
+if (!script.includes('`observations: ${state.observationsCaptured}/${IDEA_CAP}`') || !script.includes("'## Observations'")) throw new Error('Daily note export does not use Observations');
 if (/state\.ideas\.length>=10|10-n|31\+n/.test(script)) throw new Error('Hardcoded observation limit or sample week count survives');
 if (/placeholder="[^"]*Shopify|Done for today/.test(html + script)) throw new Error('Idea placeholder text survives');
+if (!script.includes('observationsCaptured')) throw new Error('Observation capture count is missing');
+if (!script.includes('state.observationsCaptured++') || !script.includes('o:()=>state.observationsCaptured>=IDEA_CAP')) throw new Error('Unlimited capture or completion target behavior is missing');
+if (!html.includes('id="idea-captured"') || !html.includes('id="idea-kept"')) throw new Error('Captured and kept observation totals are missing');
+if (!script.includes('function copyObservation(') || !script.includes('function observationToSubject(')) throw new Error('Per-observation copy or subject action is missing');
+if (!script.includes('function removeObservation(') || !script.includes('function undoObservationRemoval(') || !html.includes('id="obs-undo"')) throw new Error('Observation removal undo is missing');
+if (!script.includes('function startObservationDrag(') || !script.includes('function reorderObservation(')) throw new Error('Pointer observation reordering is missing');
+if (!script.includes("event.key==='ArrowUp'||event.key==='ArrowDown'")) throw new Error('Keyboard observation reordering is missing');
+if (/idea-add'\)\.disabled=n>=IDEA_CAP|idea-input'\)\.disabled=n>=IDEA_CAP/.test(script)) throw new Error('Observation input is still capped at ten');
+if (!script.includes('ideas:state.observationsCaptured')) throw new Error('History does not preserve the capture count');
+if (!script.includes("!('observationsCaptured' in cloud.state)")) throw new Error('Pre-upgrade cloud observation counts are not normalized');
 
 if (!html.includes('id="write-title"') || !script.includes("'writing','writeTitle'")) throw new Error('Write subject line is missing or unsynchronized');
 if (!script.includes('function draftLabel(draft)') || !script.includes('title:state.writeTitle')) throw new Error('Drafts do not carry the subject line');

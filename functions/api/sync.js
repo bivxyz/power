@@ -1,6 +1,6 @@
 const OWNER = 'owner';
 const FIELD_NAMES = new Set([
-  'prayers', 'runs', 'lifts', 'bookIdx', 'chapter', 'ideas', 'writing', 'writeTitle',
+  'prayers', 'runs', 'lifts', 'bookIdx', 'chapter', 'ideas', 'observationsCaptured', 'writing', 'writeTitle',
   'writeSeconds', 'meditationVerse', 'chaptersToday', 'marriage', 'day', 'week', 'done', 'seen', 'at'
 ]);
 const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
