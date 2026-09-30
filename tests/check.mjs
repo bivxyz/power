@@ -105,6 +105,13 @@ if (!/personal use/i.test(seed) || !/[Nn]ot for distribution/.test(seed) || !/Go
 if (!html.includes('data-view="marriage"') || !html.includes('id="view-marriage"')) throw new Error('Marriage tab is missing');
 if (!html.includes('marriage-items.js')) throw new Error('Seed file is not loaded by the page');
 if (!script.includes('function renderMarriage()') || !script.includes('function rollMarriage()')) throw new Error('Marriage rendering or daily advance is missing');
+if (!html.includes('id="mx-prev"') || !html.includes('id="mx-next"') || !script.includes('function navigateMarriagePrompt(')) throw new Error('Marriage prompt navigation is missing');
+if (!script.includes('function cycleMarriageIndex(') || !script.includes('(index+delta+MARRIAGE_ITEMS.length)%MARRIAGE_ITEMS.length')) throw new Error('Marriage prompt navigation does not wrap');
+if (!script.includes('const mxPromptDrafts=new Map()') || !script.includes('function rememberMarriageDraft(')) throw new Error('Per-prompt session drafts are missing');
+if (!script.includes('m.advanceIndex=m.index; m.advancePass=m.pass')) throw new Error('The last saved prompt is not the daily advancement anchor');
+if (!script.includes('const anchorIndex=oldAnchor?m.index:m.advanceIndex')) throw new Error('Legacy marriage state is not compatible with the advancement anchor');
+if (!script.includes('function nextMarriagePosition(') || !script.includes('{index:0,pass:pass+1}')) throw new Error('Marriage pass rollover is missing');
+if (!script.includes("saved?'Saved previously':'Not answered yet'")) throw new Error('Answered prompt status is missing');
 if (!script.includes('function saveMarriageResponse()') || !html.includes('id="mx-response"')) throw new Error('Response capture is missing');
 if (!html.includes('id="mx-history-list"') || !script.includes('function renderMarriageHistory()')) throw new Error('Response history is missing');
 if (script.includes('MX_DATE_INDEXES') || script.includes('function monthOptions')) throw new Error('Gottman date rotation should be gone');

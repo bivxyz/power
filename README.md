@@ -68,7 +68,7 @@ A **Marriage** view, separate from the five. It is not a POWER letter, it is not
 
 It also never writes anything to send. There is no drafting of messages, no composing on my behalf, no model in the loop at any point. The feature surfaces a prompt; the writing is mine.
 
-**Prompt.** One item a day from the Gottman 7-week fondness and admiration exercise, in the printed order. The task shows big, the belief statement sits under it as the subhead, and one box takes the response. Saving records it and holds the day; the next item appears tomorrow, not on a second save.
+**Prompt.** The 35 items from the Gottman 7-week fondness and admiration exercise can be browsed with Back and Forward controls, with source weeks retained only as context. Unsaved text is remembered per prompt for the current browser session. Saving records or updates the selected prompt and anchors tomorrow to the following item, even if another prompt is viewed afterward. Manual navigation wraps within the current pass; saving item 35 advances the next day to item 1 of a new pass.
 
 **Date night.** The Gottman items are prompts, not date ideas, so the ideas here are mine. A text field takes them the way Observations does, and they collect in a pool that persists. Each month I drag three out of the pool into a shortlist, pick one, and note how it went and when. A picked idea is marked with the month it was used and dimmed in the pool rather than deleted, because it still has to render in History.
 
