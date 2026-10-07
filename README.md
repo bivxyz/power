@@ -32,7 +32,7 @@ The app never grows a reading view, a search, or an archive. Obsidian already do
 
 **Write** — ten minutes. A subject line on top, the body underneath. Typing in the body starts the timer automatically, while play/pause remains available; the subject never starts it. A saved draft keeps its subject and lists under it. Save a thought as a timestamped draft to clear the writing box and continue it later from any synced device.
 
-**Exercise** — three run check-ins and three lifting check-ins. The 3+3 counts are weekly totals and clear themselves on Monday. Adding any run or lift marks Exercise complete for the current day.
+**Exercise** — a daily letter with a weekly goal. Adding any one run or lift marks E complete for the current day. The check-ins accumulate across the week; reaching all three runs and all three lifts automatically completes the combined 6/6 weekly Exercise target. Daily rollover and **Clear day** reset today's E letter but preserve those counts. The counts clear themselves on Monday.
 
 **Read** — book and chapter dropdowns covering all 66 books with correct chapter counts. Marking a chapter read checks it off in the Bible tab, advances to the next chapter, and rolls to the next book at the end. The card stays available so multiple chapters can be logged in one sitting. Chapter squares in the Bible tab can also be toggled directly for manual entry or correction without moving the current reading position. A **Verse to meditate on** window beside the main one accepts a single verse or same-chapter range, retrieves its World English Bible text, and syncs the one saved passage across devices until it is replaced or cleared.
 
@@ -52,7 +52,7 @@ Two rollovers, on different clocks. At the first load after local midnight, all 
 
 A **Week** view, opened from the desktop icons beside Today and Bible. Monday through Sunday, no paging.
 
-**Targets** come first, because they're the reason to open the page on a Thursday: observations, write minutes, runs, lifts, and chapters, each against a weekly goal with the days remaining in the corner. The numbers live in one `WEEK_TARGETS` object at the top of the script... change a goal on one line.
+**Targets** come first, because they're the reason to open the page on a Thursday: observations, write minutes, Exercise, and chapters, each against a weekly goal with the days remaining in the corner. Exercise displays as one 6-session target but only reaches complete when both underlying requirements are met: 3 runs and 3 lifts. The numbers live in one `WEEK_TARGETS` object at the top of the script... change a goal on one line.
 
 **The grid** is five rows by seven days, and every cell is a toggle. Forgot to tick Read on Tuesday, tick it Tuesday. Future days are inert.
 

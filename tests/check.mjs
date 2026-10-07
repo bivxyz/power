@@ -18,6 +18,8 @@ const bible = JSON.parse(bibleLiteral);
 const chapterCount = bible.reduce((sum, [, chapters]) => sum + chapters, 0);
 if (bible.length !== 66 || chapterCount !== 1189) throw new Error(`Bible data mismatch: ${bible.length} books, ${chapterCount} chapters`);
 if (!script.includes("e:()=>false") || !script.includes("if(added&&!state.done.e)")) throw new Error('Daily Exercise completion behavior is missing');
+if (!script.includes('const weeklyExerciseComplete=()=>state.runs>=WEEK_TARGETS.runs&&state.lifts>=WEEK_TARGETS.lifts')) throw new Error('Weekly Exercise completion must require 3 runs and 3 lifts');
+if (!script.includes("['Exercise',exerciseSessions(),WEEK_TARGETS.runs+WEEK_TARGETS.lifts,'',weeklyExerciseComplete()]")) throw new Error('Combined weekly Exercise target is missing');
 if (!script.includes("'meditationVerse','chaptersToday','marriage','day','week'")) throw new Error('Daily rollover or meditation verse keys are not synchronized');
 
 if (!script.includes("timerManuallyPaused") || !script.includes("e.inputType?e.inputType.startsWith('insert')")) throw new Error('Automatic writing timer behavior is missing');
@@ -63,6 +65,7 @@ if (!script.includes('function hasPatch(patch)') || !script.includes('patch.hist
 if (!script.includes('function rollWeeklyState()') || !script.includes('function rollState()')) throw new Error('Weekly rollover is missing');
 if (!script.includes('state.runs=0;\n  state.lifts=0;')) throw new Error('Weekly rollover does not clear the exercise counts');
 if (/rollDailyState\(\)/.test(script.replace(/function rollDailyState\(\)/, '').replace('const rolledDay=rollDailyState();', ''))) throw new Error('A rollDailyState call bypasses the weekly rollover');
+if (!script.includes("Clear today's prayers, observations, writing, timer, and POWER completion? Weekly exercise totals")) throw new Error('Clear day must preserve weekly Exercise totals');
 
 if (!script.includes('function toggles(') || !script.includes('toggles($(\'pray-taps\')')) throw new Error('Prayer slots are not independent toggles');
 if (!script.includes('function normalizePrayers(') || !script.includes('prayers:normalizePrayers(saved.prayers)')) throw new Error('Legacy prayer counts are not converted on load');

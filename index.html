@@ -485,7 +485,7 @@
       <div class="card-head"><span class="title"><span class="letter" aria-hidden="true">E</span><h2>Exercise</h2></span><span class="eyebrow">3+3 weekly</span></div>
       <div class="exercise-set"><p class="eyebrow">Run</p><div class="taps" id="run-taps"></div></div>
       <div class="exercise-set"><p class="eyebrow">Lift</p><div class="taps" id="lift-taps"></div></div>
-      <div class="foot"><span><span id="run-count">0</span> runs &middot; <span id="lift-count">0</span> lifts</span><button class="btn danger sm" data-clear="e" type="button">Clear</button></div>
+      <div class="foot"><span id="exercise-week-status">0/6 this week &middot; 0 runs &middot; 0 lifts</span><button class="btn danger sm" data-clear="e" type="button">Clear</button></div>
     </article>
 
     <article class="card c12" data-k="r">
@@ -654,6 +654,8 @@ const localDay=()=>dayKey(new Date());
 const parseDay=key=>{const [y,m,d]=key.split('-').map(Number); return new Date(y,m-1,d)};
 const shiftDay=(key,n)=>{const d=parseDay(key); d.setDate(d.getDate()+n); return dayKey(d)};
 const weekStart=(d=new Date())=>{const m=new Date(d); m.setDate(m.getDate()-((m.getDay()+6)%7)); return dayKey(m)};
+const exerciseSessions=()=>Math.min(state.runs,WEEK_TARGETS.runs)+Math.min(state.lifts,WEEK_TARGETS.lifts);
+const weeklyExerciseComplete=()=>state.runs>=WEEK_TARGETS.runs&&state.lifts>=WEEK_TARGETS.lifts;
 const DEFAULTS={
   prayers:[false,false,false], runs:0, lifts:0, bookIdx:40, chapter:4, readChapters:[], drafts:[], ideas:[], observationsCaptured:0, writing:'', writeTitle:'', writeSeconds:0,
   meditationVerse:null, chaptersToday:0, history:{},
@@ -1082,13 +1084,12 @@ function renderWeek(){
   $('week-left').textContent=left===1?'Last day':`${left} days left`;
 
   $('week-targets').innerHTML=[
-    ['Observed',stats.ideas,WEEK_TARGETS.ideas,''],
-    ['Write',stats.writeMinutes,WEEK_TARGETS.writeMinutes,'m'],
-    ['Run',stats.runs,WEEK_TARGETS.runs,''],
-    ['Lift',stats.lifts,WEEK_TARGETS.lifts,''],
-    ['Chapters',stats.chapters,WEEK_TARGETS.chapters,'']
-  ].map(([label,have,goal,unit])=>
-    `<div class="target-row${have>=goal?' hit':''}"><span class="target-name">${label}</span>
+    ['Observed',stats.ideas,WEEK_TARGETS.ideas,'',stats.ideas>=WEEK_TARGETS.ideas],
+    ['Write',stats.writeMinutes,WEEK_TARGETS.writeMinutes,'m',stats.writeMinutes>=WEEK_TARGETS.writeMinutes],
+    ['Exercise',exerciseSessions(),WEEK_TARGETS.runs+WEEK_TARGETS.lifts,'',weeklyExerciseComplete()],
+    ['Chapters',stats.chapters,WEEK_TARGETS.chapters,'',stats.chapters>=WEEK_TARGETS.chapters]
+  ].map(([label,have,goal,unit,hit])=>
+    `<div class="target-row${hit?' hit':''}"><span class="target-name">${label}</span>
        <span class="target-count">${have}${unit}/${goal}${unit}</span>
        <span class="pips">${bar(have,goal)}</span></div>`).join('');
 
@@ -1443,6 +1444,8 @@ function renderPray(){
   });
   $('pray-count').textContent=prayerCount();
 }
+// E has two clocks: any check-in completes today's letter, while 3 runs plus
+// 3 lifts completes the weekly Exercise target. Only the counts roll on Monday.
 function renderRuns(){
   const update=(kind,n)=>{
     const added=n>state[kind];
@@ -1452,8 +1455,10 @@ function renderRuns(){
   };
   taps($('run-taps'),state.runs,['Run 1','Run 2','Run 3'],n=>update('runs',n));
   taps($('lift-taps'),state.lifts,['Lift 1','Lift 2','Lift 3'],n=>update('lifts',n));
-  $('run-count').textContent=state.runs;
-  $('lift-count').textContent=state.lifts;
+  const weeklyDone=weeklyExerciseComplete();
+  $('exercise-week-status').textContent=weeklyDone
+    ? `Week complete · ${state.runs} runs · ${state.lifts} lifts`
+    : `${exerciseSessions()}/${WEEK_TARGETS.runs+WEEK_TARGETS.lifts} this week · ${state.runs} runs · ${state.lifts} lifts`;
 }
 
 // Observations were plain strings when this card was Organize. New ones carry the
@@ -1754,7 +1759,7 @@ const CLEAR_PROMPTS={
   p:"Clear today's prayer taps?",
   o:"Clear today's observations?",
   w:"Clear today's writing and timer?",
-  e:"Clear this week's run and lifting check-ins?"
+  e:"Clear this week's Exercise check-ins?"
 };
 function clearModule(k){
   if(!confirm(CLEAR_PROMPTS[k])) return;
