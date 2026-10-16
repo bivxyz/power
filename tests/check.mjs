@@ -25,6 +25,11 @@ if (!script.includes("'meditationVerse','chaptersToday','marriage','day','week'"
 if (!script.includes("timerManuallyPaused") || !script.includes("e.inputType?e.inputType.startsWith('insert')")) throw new Error('Automatic writing timer behavior is missing');
 if (!script.includes('draftChanges') || !script.includes('function saveDraft()') || !script.includes('function continueDraft(id)')) throw new Error('Draft lifecycle or synchronization behavior is missing');
 if (!html.includes('id="draft-save"') || !html.includes('id="draft-list"')) throw new Error('Draft controls are missing');
+const writeCard = html.match(/<article class="card c8" data-k="w">([\s\S]*?)<article class="card c4" data-k="e">/)?.[1] || '';
+const writeHeader = writeCard.match(/<div class="card-head">([\s\S]*?)<\/div>/)?.[1] || '';
+const writeFooter = writeCard.match(/<div class="foot">([\s\S]*?)<\/div>/)?.[1] || '';
+if (!writeHeader.includes('data-clear="w"') || writeFooter.includes('data-clear="w"')) throw new Error('Write Clear must live in the header, not the footer');
+if (!(writeFooter.indexOf('id="write-copy"') < writeFooter.indexOf('id="draft-save"') && writeFooter.indexOf('id="draft-save"') < writeFooter.indexOf('id="export"'))) throw new Error('Write footer actions are not ordered Copy, Save draft, Download');
 if (!html.includes('id="clear-day"') || !script.includes('function clearDay()')) throw new Error('Clear day control is missing');
 if (!script.includes('state.done={...DEFAULTS.done}') || !script.includes('state.seen={...DEFAULTS.seen}')) throw new Error('Clear day completion reset is missing');
 if (!html.includes('id="meditation-find"') || !html.includes('id="meditation-verse"')) throw new Error('Meditation verse controls are missing');
@@ -40,7 +45,7 @@ if (!script.includes('renderWeek()') || !script.includes('renderTimer(); renderC
 
 if (!script.includes('const IDEA_CAP=10;')) throw new Error('Observation cap is not ten');
 if (!html.includes('<h2>Observations</h2>') || /<h2>Organize<\/h2>/.test(html)) throw new Error('Organize card was not renamed to Observations');
-if (!script.includes("state.ideas.push({text:v, at:clock()})") || !script.includes('const obsText=')) throw new Error('Observations are not timestamped or legacy strings are not handled');
+if (!script.includes("state.ideas.unshift({text:v, at:clock()})") || !script.includes('const obsText=')) throw new Error('Observations are not inserted newest-first or legacy strings are not handled');
 if (!script.includes('`observations: ${state.observationsCaptured}/${IDEA_CAP}`') || !script.includes("'## Observations'")) throw new Error('Daily note export does not use Observations');
 if (/state\.ideas\.length>=10|10-n|31\+n/.test(script)) throw new Error('Hardcoded observation limit or sample week count survives');
 if (/placeholder="[^"]*Shopify|Done for today/.test(html + script)) throw new Error('Idea placeholder text survives');

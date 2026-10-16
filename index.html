@@ -462,7 +462,7 @@
     </article>
 
     <article class="card c8" data-k="w">
-      <div class="card-head"><span class="title"><span class="letter" aria-hidden="true">W</span><h2>Write</h2></span><span class="timer-wrap"><span id="timer">10:00</span><button class="btn solid timer-button" id="timer-toggle" type="button" aria-label="Start timer" title="Start timer"></button></span></div>
+      <div class="card-head"><span class="title"><span class="letter" aria-hidden="true">W</span><h2>Write</h2></span><span class="timer-wrap"><span id="timer">10:00</span><button class="btn solid timer-button" id="timer-toggle" type="button" aria-label="Start timer" title="Start timer"></button><button class="btn danger sm" data-clear="w" type="button">Clear</button></span></div>
       <div class="row"><input id="write-title" type="text" placeholder="What I'm writing about today" aria-label="What I'm writing about today"></div>
       <textarea id="write-box" rows="8" placeholder="Start typing." style="margin-top:8px"></textarea>
       <section class="drafts-panel">
@@ -473,10 +473,9 @@
       <div class="foot">
         <span><span id="word-count">0</span> words</span>
         <span class="button-group">
-          <button class="btn danger sm" data-clear="w" type="button">Clear</button>
           <button class="btn sm" id="write-copy" type="button">Copy text</button>
-          <button class="btn sm" id="export" type="button">Download .md</button>
           <button class="btn solid sm" id="draft-save" type="button">Save draft</button>
+          <button class="btn sm" id="export" type="button">Download .md</button>
         </span>
       </div>
     </article>
@@ -1472,7 +1471,7 @@ function addIdea(){
   const el=$('idea-input');
   const v=el.value.trim();
   if(!v) return;
-  state.ideas.push({text:v, at:clock()});
+  state.ideas.unshift({text:v, at:clock()});
   state.observationsCaptured++;
   el.value='';
   sync();
