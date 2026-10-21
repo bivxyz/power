@@ -99,6 +99,8 @@ if (script.includes('cloudBaseline.key') || script.includes('state.syncKey')) th
 if (!script.includes('lastFocusPull') || !script.includes('startCloudSync();')) throw new Error('The tab does not re-sync when it regains focus');
 if (script.includes('Sign in through Cloudflare Access')) throw new Error('Stale status copy: a 401 here is a misconfiguration, not a sign-in prompt');
 
+if (!script.includes('state.prayers=normalizePrayers(0)') || !/state\.seen=\{\s*p:false,/.test(script)) throw new Error('Prayer times must reset at the daily rollover, or P can never auto-complete again');
+
 const seed = fs.readFileSync(new URL('../marriage-items.js', import.meta.url), 'utf8');
 const items = new Function(seed + '; return MARRIAGE_ITEMS;')();
 if (items.length !== 35) throw new Error(`Gottman seed should hold 35 items, found ${items.length}`);

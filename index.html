@@ -711,8 +711,12 @@ function rollDailyState(){
   state.done={...DEFAULTS.done};
   state.at={};
   state.chaptersToday=0;
+  // Prayer times are per day, unlike observations and writing which persist until
+  // cleared. Carrying them over also left seen.p true at midnight, and settle() only
+  // fires on the transition, so P could never auto-complete again from day two on.
+  state.prayers=normalizePrayers(0);
   state.seen={
-    p:prayerCount()>=1,
+    p:false,
     o:state.observationsCaptured>=IDEA_CAP,
     w:state.writeSeconds>=600,
     e:false,
