@@ -35,6 +35,7 @@ if (!script.includes('state.done={...DEFAULTS.done}') || !script.includes('state
 if (!html.includes('id="meditation-find"') || !html.includes('id="meditation-verse"')) throw new Error('Meditation verse controls are missing');
 if (!script.includes("'meditationVerse','chaptersToday','marriage','day','week'") || !script.includes('async function findMeditationVerse()')) throw new Error('Meditation verse lookup or synchronization is missing');
 const sync = fs.readFileSync(new URL('../functions/api/sync.js', import.meta.url), 'utf8');
+const middleware = fs.readFileSync(new URL('../functions/api/_middleware.js', import.meta.url), 'utf8');
 if (!sync.includes("'observationsCaptured'")) throw new Error('Observation capture count is not accepted by the sync API');
 
 if (!html.includes('data-view="week"') || !html.includes('id="view-week"') || !html.includes('id="week-grid"')) throw new Error('Week view markup is missing');
@@ -86,11 +87,11 @@ if (!script.includes('state[key]=mergeContainer(state[key],sub)')) throw new Err
 if (!/return \{changes,keyed,/.test(script)) throw new Error('diffFromBaseline does not return per-key changes');
 if (!script.includes("redirect:'manual'")) throw new Error("A gateway in front of the API 302s cross-origin; without redirect:'manual' that reads as a bare TypeError");
 if (!script.includes("response.type==='opaqueredirect'") || !script.includes('error.stillGated=true')) throw new Error('A still-gated hostname is not distinguished from a rejected passphrase');
-if (!sync.includes('crypto.subtle.timingSafeEqual')) throw new Error('Passphrase comparison must be constant time');
-if (!sync.includes('const KEY_HEADER') || !script.includes("headers['x-power-key']=syncKey")) throw new Error('The passphrase is not sent as a header');
+if (!middleware.includes('crypto.subtle.timingSafeEqual')) throw new Error('Passphrase comparison must be constant time');
+if (!middleware.includes('const KEY_HEADER') || !script.includes("headers['x-power-key']=syncKey")) throw new Error('The passphrase is not sent as a header');
 if (/[?&](key|secret|pass)/i.test(script.slice(script.indexOf('async function apiSync')))) throw new Error('The passphrase must never ride in a URL');
-if (!sync.includes('if (!expected)') || !sync.includes("host === 'localhost'")) throw new Error('An unset secret must fail closed on any deployed origin');
-if (sync.includes('cf-access-jwt-assertion')) throw new Error('Cloudflare Access check should be gone');
+if (!middleware.includes('if (!expected)') || !middleware.includes("host === 'localhost'")) throw new Error('An unset secret must fail closed on any deployed origin');
+if (sync.includes('cf-access-jwt-assertion') || middleware.includes('cf-access-jwt-assertion')) throw new Error('Cloudflare Access check should be gone');
 if (!html.includes('id="sync-key"') || !html.includes('type="password"')) throw new Error('There is no masked field to enter the passphrase');
 if (!script.includes('if(!syncBlocked) setSyncStatus')) throw new Error('A blocked sync can still report "Synced" when there is nothing queued to push');
 if (!script.includes('function saveSyncKey()') || !script.includes('store.set(KEY_STORE,syncKey)')) throw new Error('The passphrase is not persisted per device');
@@ -100,6 +101,29 @@ if (!script.includes('lastFocusPull') || !script.includes('startCloudSync();')) 
 if (script.includes('Sign in through Cloudflare Access')) throw new Error('Stale status copy: a 401 here is a misconfiguration, not a sign-in prompt');
 
 if (!script.includes('state.prayers=normalizePrayers(0)') || !/state\.seen=\{\s*p:false,/.test(script)) throw new Error('Prayer times must reset at the daily rollover, or P can never auto-complete again');
+
+const verseApi = fs.readFileSync(new URL('../functions/api/verse.js', import.meta.url), 'utf8');
+// auth lives in one place
+if (!middleware.includes('crypto.subtle.timingSafeEqual') || !middleware.includes('export async function onRequest(')) throw new Error('The passphrase check must live in functions/api/_middleware.js');
+if (/authenticated|timingSafeEqual|x-power-key/.test(sync)) throw new Error('sync.js carries its own copy of auth; it belongs in the middleware');
+if (/new Fail\(\s*401|json\([^)]*,\s*401\s*\)/.test(verseApi)) throw new Error('verse.js must not answer 401: the client reads that as a wrong sync passphrase');
+
+// translations
+const books = (verseApi.match(/^\s*\["[^"]+", \d+, "[^"]+", "[A-Z0-9]{3}"\]/gm) || []);
+if (books.length !== 66) throw new Error(`verse.js book table has ${books.length} rows, expected 66`);
+const clientNames = JSON.parse(script.match(/const BIBLE=(\[.*?\]);/)[1]).map(([n]) => n);
+const serverNames = books.map(row => JSON.parse(row.trim())[0]);
+if (clientNames.join('|') !== serverNames.join('|')) throw new Error('verse.js book names have drifted from BIBLE in index.html');
+for (const t of ['WEB', 'ESV', 'NLT', 'NIV']) {
+  if (!html.includes(`<option value="${t}">`)) throw new Error(`Translation ${t} is missing from the dropdown`);
+}
+if (script.includes('bible-api.com') || /ESV_API_KEY|NLT_API_KEY|API_BIBLE_KEY/.test(html)) throw new Error('Verse lookups and API keys must stay server-side');
+if (!verseApi.includes("verses.includes(ref.start)")) throw new Error('NLT clamps past-the-end verses to the chapter end; that must be refused');
+if (!verseApi.includes('.psa-title') || !verseApi.includes('.tn')) throw new Error('NLT headings and footnotes must be stripped');
+if (!verseApi.includes('fums.api.bible')) throw new Error('NIV via API.Bible must report FUMS views');
+if (!html.includes('id="meditation-attribution"') || !script.includes('entry.link')) throw new Error('Translation attribution (and the ESV link) is not rendered');
+if (!script.includes('if(!verse.text) return {};') || !script.includes('endVerse:range.end,texts:{}')) throw new Error('A new verse must not inherit a phantom WEB cache entry');
+if (!script.includes('function switchMeditationTranslation(') || !script.includes('function verseTexts(')) throw new Error('Switching translations on a saved verse is missing');
 
 const seed = fs.readFileSync(new URL('../marriage-items.js', import.meta.url), 'utf8');
 const items = new Function(seed + '; return MARRIAGE_ITEMS;')();

@@ -34,7 +34,24 @@ The app never grows a reading view, a search, or an archive. Obsidian already do
 
 **Exercise** — a daily letter with a weekly goal. Adding any one run or lift marks E complete for the current day. The check-ins accumulate across the week; reaching all three runs and all three lifts automatically completes the combined 6/6 weekly Exercise target. Daily rollover and **Clear day** reset today's E letter but preserve those counts. The counts clear themselves on Monday.
 
-**Read** — book and chapter dropdowns covering all 66 books with correct chapter counts. Marking a chapter read checks it off in the Bible tab, advances to the next chapter, and rolls to the next book at the end. The card stays available so multiple chapters can be logged in one sitting. Chapter squares in the Bible tab can also be toggled directly for manual entry or correction without moving the current reading position. A **Verse to meditate on** window beside the main one accepts a single verse or same-chapter range, retrieves its World English Bible text, and syncs the one saved passage across devices until it is replaced or cleared.
+**Read** — book and chapter dropdowns covering all 66 books with correct chapter counts. Marking a chapter read checks it off in the Bible tab, advances to the next chapter, and rolls to the next book at the end. The card stays available so multiple chapters can be logged in one sitting. Chapter squares in the Bible tab can also be toggled directly for manual entry or correction without moving the current reading position. A **Verse to meditate on** window beside the main one accepts a single verse or same-chapter range and syncs the one saved passage across devices until it is replaced or cleared. A dropdown beside the verse field picks the translation, WEB, ESV, NLT or NIV, and changing it re-reads the saved verse in that translation. Each translation is kept once fetched, so flipping back costs nothing.
+
+### Translations
+
+Lookups go through `/api/verse`, never straight from the browser, because ESV, NLT and NIV are licensed and their API keys must stay off the page. ESV's terms forbid publishing your key, and anything in the page source is published. The endpoint sits behind the same passphrase as sync, which also keeps strangers from spending the quotas.
+
+| | source | key | set with |
+|---|---|---|---|
+| WEB | bible-api.com | none, public domain | |
+| ESV | api.esv.org (Crossway) | required | `npx wrangler pages secret put ESV_API_KEY --project-name power` |
+| NLT | api.nlt.to (Tyndale) | optional, recommended | `npx wrangler pages secret put NLT_API_KEY --project-name power` |
+| NIV | API.Bible Starter plan | required | `npx wrangler pages secret put API_BIBLE_KEY --project-name power` |
+
+A translation without its key shows "not set up yet" rather than failing quietly. NLT works anonymously, but its anonymous quota is metered by IP address and Workers share outbound IPs, so you would be splitting 500 requests a day with strangers. NIV's Bible id defaults to `78a9f6124f344018-01`; if API.Bible shows a different id for NIV on your account, set `NIV_BIBLE_ID` the same way.
+
+All three are free for non-commercial use, which this is. Each passage renders the publisher's required notice beneath it, and ESV adds the link to esv.org its terms require. API.Bible requires every displayed NIV passage to be reported to its Fair Use Management System; the worker does that server-side, so no tracking script loads on the page.
+
+NLT answers with HTML, not text. Headings, psalm superscriptions, verse numbers and footnotes are removed with `HTMLRewriter` before tags are stripped, because footnotes nest spans inside spans. NLT also clamps a verse past the end of a chapter to the chapter's last verse rather than erroring, so John 3:150 would come back as John 3:36; the worker refuses any answer that does not start at the verse asked for. Its book codes are OSIS except 1Th/2Th and 1Jn/2Jn/3Jn, each checked against the live API.
 
 ### Completion behavior
 

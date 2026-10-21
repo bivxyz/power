@@ -208,7 +208,9 @@
 
   /* verse window */
   .meditation-form{display:grid; grid-template-columns:minmax(0,1fr) 84px; gap:8px}
-  .meditation-form .verse-range,.meditation-form .btn{grid-column:1/-1}
+  .meditation-form .btn{grid-column:1/-1}
+  .meditation-attribution{margin-top:8px; font-size:10.5px; line-height:1.45; color:var(--dim)}
+  .meditation-attribution a{color:inherit}
   .meditation-form input{width:100%}
   .meditation-status{min-height:1.6em; margin-top:6px; font-family:var(--mono); font-size:11px; color:var(--dim)}
   .meditation-status.error{color:var(--red)}
@@ -597,14 +599,18 @@
     <div class="titlebar"><h2 class="t" id="meditation-title">Verse to meditate on</h2><span class="ctl" aria-hidden="true"><i>&times;</i></span></div>
     <div class="wbody">
       <div class="meditation-verse hidden" id="meditation-verse">
-        <div class="meditation-reference"><strong id="meditation-reference"></strong><span class="eyebrow">WEB</span></div>
+        <div class="meditation-reference"><strong id="meditation-reference"></strong><span class="eyebrow" id="meditation-version">WEB</span></div>
         <p class="meditation-text" id="meditation-text"></p>
+        <p class="meditation-attribution" id="meditation-attribution"></p>
         <div class="meditation-actions"><button class="btn danger sm" id="meditation-clear" type="button">Clear verse</button></div>
       </div>
       <div class="meditation-form">
         <select id="meditation-book" aria-label="Meditation verse book"></select>
         <input id="meditation-chapter" type="number" min="1" inputmode="numeric" aria-label="Meditation verse chapter" placeholder="Ch.">
         <input class="verse-range" id="meditation-range" type="text" inputmode="numeric" aria-label="Meditation verse or range" placeholder="Verse, e.g. 16 or 28-30">
+        <select id="meditation-translation" aria-label="Bible translation">
+          <option value="WEB">WEB</option><option value="ESV">ESV</option><option value="NLT">NLT</option><option value="NIV">NIV</option>
+        </select>
         <button class="btn solid" id="meditation-find" type="button">Find verse</button>
       </div>
       <p class="meditation-status" id="meditation-status" role="status" aria-live="polite"></p>
@@ -1825,11 +1831,59 @@ function parseMeditationRange(value){
   const start=Number(match[1]), end=Number(match[2]||match[1]);
   return start>=1&&end>=start?{start,end}:null;
 }
+// Lookups go through /api/verse so publisher API keys stay on the server. The
+// passphrase rides as a header, never in the URL.
+async function apiVerse(params){
+  const headers={};
+  if(syncKey) headers['x-power-key']=syncKey;
+  const response=await fetch('/api/verse?'+new URLSearchParams(params),{headers,redirect:'manual'});
+  if(response.type==='opaqueredirect'||response.status===0){
+    const error=new Error('Redirected away from the API'); error.status=401; error.stillGated=true; throw error;
+  }
+  let data={};
+  try{data=await response.json()}catch{}
+  if(!response.ok){
+    const error=new Error(data.error||`Verse lookup failed (${response.status})`);
+    error.status=response.status; error.code=data.code; error.translation=data.translation;
+    throw error;
+  }
+  return data;
+}
+function verseErrorMessage(error){
+  if(error.status===401){
+    setSyncBlocked(rejectionMessage(error),wantsKey(error));
+    return 'Enter the sync passphrase above to look up verses.';
+  }
+  if(error.code==='translation_unconfigured') return `${error.translation} is not set up yet. Its API key needs adding to the deployment.`;
+  if(error.code==='provider_key_rejected') return `The ${error.translation} service rejected the deployment's API key.`;
+  if(error instanceof TypeError) return 'Could not reach the verse service. Your saved verse was not changed.';
+  return String(error.message||'Verse lookup failed.');
+}
+// Verses saved before translations existed hold one WEB text and no table.
+function verseTexts(verse){
+  if(!verse) return {};
+  if(verse.texts&&typeof verse.texts==='object') return verse.texts;
+  // Only a verse that actually holds old text is legacy. A brand-new one has none yet,
+  // and treating it as WEB would cache an empty entry and later show the wrong text.
+  if(!verse.text) return {};
+  return {[verse.translation||'WEB']:{reference:verse.reference,text:verse.text,copyright:'World English Bible. Public domain.'}};
+}
+function verseEntry(data,fallbackReference){
+  return {reference:String(data.reference||fallbackReference),text:String(data.text).trim(),copyright:String(data.copyright||''),link:String(data.link||'')};
+}
+function showVerseIn(verse,translation,entry){
+  verse.texts={...verseTexts(verse),[translation]:entry};
+  verse.translation=translation;
+  verse.reference=entry.reference;
+  verse.text=entry.text;
+}
+
 async function findMeditationVerse(){
   if(meditationLoading) return;
   const bookIdx=Number($('meditation-book').value);
   const chapter=Number($('meditation-chapter').value);
   const range=parseMeditationRange($('meditation-range').value);
+  const translation=$('meditation-translation').value;
   if(!BIBLE[bookIdx]||!Number.isInteger(chapter)||chapter<1||chapter>BIBLE[bookIdx][1]){
     meditationError('Enter a valid chapter for the selected book.'); return;
   }
@@ -1841,22 +1895,46 @@ async function findMeditationVerse(){
   const status=$('meditation-status');
   status.classList.remove('error'); status.textContent='Finding verse…';
   try{
-    const response=await fetch(`https://bible-api.com/${encodeURIComponent(reference)}?translation=web`);
-    let data={};
-    try{data=await response.json()}catch{}
-    if(!response.ok||data.error||!String(data.text||'').trim()) throw new Error(data.error||'Verse not found. Check the reference and try again.');
-    const verses=Array.isArray(data.verses)?data.verses:[];
-    const actualStart=Number(verses[0]?.verse)||range.start;
-    const actualEnd=Number(verses[verses.length-1]?.verse)||range.end;
-    state.meditationVerse={reference:String(data.reference||reference),book:BIBLE[bookIdx][0],chapter,startVerse:actualStart,endVerse:actualEnd,text:String(data.text).trim(),translation:'WEB',retrievedAt:new Date().toISOString()};
+    const data=await apiVerse({translation,book:bookIdx,chapter,start:range.start,end:range.end});
+    const verse={bookIdx,book:BIBLE[bookIdx][0],chapter,startVerse:range.start,endVerse:range.end,texts:{},retrievedAt:new Date().toISOString()};
+    showVerseIn(verse,translation,verseEntry(data,reference));
+    state.meditationVerse=verse;
     status.textContent='Verse saved.';
     sync();
   }catch(error){
-    meditationError(error instanceof TypeError?'Could not reach the verse service. Your saved verse was not changed.':String(error.message||'Verse lookup failed.'));
+    meditationError(verseErrorMessage(error));
   }finally{
     meditationLoading=false; $('meditation-find').disabled=false;
   }
 }
+
+// Flipping the dropdown re-reads the saved verse in that translation. Each one is kept
+// once fetched, so flipping back is instant and costs no quota.
+async function switchMeditationTranslation(translation){
+  const verse=state.meditationVerse;
+  if(!verse||meditationLoading) return;
+  const cached=verseTexts(verse)[translation];
+  const status=$('meditation-status');
+  if(cached){ showVerseIn(verse,translation,cached); status.textContent=''; sync(); return }
+  const bookIdx=Number.isInteger(verse.bookIdx)?verse.bookIdx:BIBLE.findIndex(b=>b[0]===verse.book);
+  if(bookIdx<0){meditationError('This saved verse predates translations. Find it again to switch.'); return}
+  meditationLoading=true;
+  status.classList.remove('error'); status.textContent=`Loading ${translation}…`;
+  try{
+    const data=await apiVerse({translation,book:bookIdx,chapter:verse.chapter,start:verse.startVerse,end:verse.endVerse||verse.startVerse});
+    verse.bookIdx=bookIdx;
+    showVerseIn(verse,translation,verseEntry(data,verse.reference));
+    status.textContent='';
+    sync();
+  }catch(error){
+    meditationError(verseErrorMessage(error));
+    $('meditation-translation').value=verse.translation||'WEB';
+  }finally{
+    meditationLoading=false;
+  }
+}
+$('meditation-translation').addEventListener('change',e=>switchMeditationTranslation(e.target.value));
+
 function clearMeditationVerse(){
   if(!state.meditationVerse||!confirm('Clear the saved meditation verse?')) return;
   state.meditationVerse=null;
@@ -1871,8 +1949,22 @@ function renderMeditationVerse(){
   const verse=state.meditationVerse;
   $('meditation-verse').classList.toggle('hidden',!verse);
   if(!verse) return;
-  $('meditation-reference').textContent=verse.reference;
-  $('meditation-text').textContent=verse.text;
+  const translation=verse.translation||'WEB';
+  const entry=verseTexts(verse)[translation]||{reference:verse.reference,text:verse.text};
+  if(!meditationLoading&&document.activeElement!==$('meditation-translation')) $('meditation-translation').value=translation;
+  $('meditation-reference').textContent=entry.reference||verse.reference;
+  $('meditation-version').textContent=translation;
+  $('meditation-text').textContent=entry.text||verse.text;
+  // ESV's terms require a link to esv.org wherever its text appears. Built with
+  // textContent, since the notice text comes back from the provider.
+  const attribution=$('meditation-attribution');
+  attribution.textContent=entry.copyright||'';
+  if(entry.link){
+    const a=document.createElement('a');
+    a.href=entry.link; a.target='_blank'; a.rel='noopener';
+    a.textContent=entry.link.replace(/^https?:\/\/(www\.)?/,'');
+    attribution.append(' ',a);
+  }
 }
 
 function renderRead(){
