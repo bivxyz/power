@@ -1,6 +1,6 @@
 // GET /api/verse?translation=ESV&book=42&chapter=3&start=16&end=17
 //
-// One endpoint in front of four publishers, so API keys stay server-side. ESV's terms
+// One endpoint in front of three publishers, so API keys stay server-side. ESV's terms
 // forbid publishing your key, and anything in the page source is published. The
 // passphrase check in ./_middleware.js runs first, which also keeps strangers from
 // spending these quotas.
@@ -80,17 +80,13 @@ const BOOKS = [
   ["Revelation", 22, "Rev", "REV"]
 ];
 
-const TRANSLATIONS = ['WEB', 'ESV', 'NLT', 'NIV'];
+const TRANSLATIONS = ['WEB', 'ESV', 'NLT'];
 
 const NOTICES = {
   WEB: 'World English Bible. Public domain.',
   ESV: 'Scripture quotations are from The ESV® Bible (The Holy Bible, English Standard Version®), © 2001 by Crossway, a publishing ministry of Good News Publishers. Used by permission. All rights reserved.',
   NLT: 'Scripture quotations are taken from the Holy Bible, New Living Translation, copyright © 1996, 2004, 2015 by Tyndale House Foundation. Used by permission of Tyndale House Publishers, Carol Stream, Illinois 60188. All rights reserved.'
 };
-
-// FUMS wants a stable, non-personal device id. This is a single-user dashboard.
-const FUMS_DEVICE = 'power-dashboard';
-const NIV_DEFAULT_BIBLE = '78a9f6124f344018-01';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -177,40 +173,7 @@ async function nlt(ref, env) {
   return {reference: tidy(header.text).replace(/,\s*NLT$/, '') || null, text, copyright: NOTICES.NLT};
 }
 
-// NIV is licensed through API.Bible. Its terms require each displayed passage to be
-// reported to FUMS; done here, server-side, so no tracking script loads on the page.
-async function niv(ref, env, context) {
-  if (!env.API_BIBLE_KEY) throw unconfigured('NIV');
-  const bible = env.NIV_BIBLE_ID || NIV_DEFAULT_BIBLE;
-  const first = `${ref.usfm}.${ref.chapter}.${ref.start}`;
-  const id = ref.end === ref.start ? first : `${first}-${ref.usfm}.${ref.chapter}.${ref.end}`;
-  const params = new URLSearchParams({
-    'content-type': 'text',
-    'include-notes': 'false',
-    'include-titles': 'false',
-    'include-chapter-numbers': 'false',
-    'include-verse-numbers': 'false',
-    'include-verse-spans': 'false',
-    'fums-version': '3'
-  });
-  const response = await fetch(`https://api.scripture.api.bible/v1/bibles/${bible}/passages/${id}?${params}`, {
-    headers: {'api-key': env.API_BIBLE_KEY}
-  });
-  if (response.status === 401 || response.status === 403) throw keyRejected('NIV');
-  if (response.status === 404) throw notFound();
-  let data = {};
-  try { data = await response.json(); } catch {}
-  const text = tidy(data.data?.content);
-  if (!response.ok || !text) throw new Fail(502, 'provider_error', 'The NIV service did not return a passage.');
-  const token = data.meta?.fumsToken;
-  if (token) {
-    const fums = `https://fums.api.bible/f3?t=${encodeURIComponent(token)}&dId=${FUMS_DEVICE}&sId=${crypto.randomUUID()}`;
-    context.waitUntil(fetch(fums).catch(() => {}));
-  }
-  return {reference: data.data.reference, text, copyright: tidy(data.data.copyright)};
-}
-
-const PROVIDERS = {WEB: web, ESV: esv, NLT: nlt, NIV: niv};
+const PROVIDERS = {WEB: web, ESV: esv, NLT: nlt};
 
 function parse(url) {
   const p = url.searchParams;
