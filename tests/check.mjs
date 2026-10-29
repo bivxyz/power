@@ -114,13 +114,12 @@ if (books.length !== 66) throw new Error(`verse.js book table has ${books.length
 const clientNames = JSON.parse(script.match(/const BIBLE=(\[.*?\]);/)[1]).map(([n]) => n);
 const serverNames = books.map(row => JSON.parse(row.trim())[0]);
 if (clientNames.join('|') !== serverNames.join('|')) throw new Error('verse.js book names have drifted from BIBLE in index.html');
-for (const t of ['WEB', 'ESV', 'NLT', 'NIV']) {
+for (const t of ['WEB', 'ESV', 'NLT']) {
   if (!html.includes(`<option value="${t}">`)) throw new Error(`Translation ${t} is missing from the dropdown`);
 }
 if (script.includes('bible-api.com') || /ESV_API_KEY|NLT_API_KEY|API_BIBLE_KEY/.test(html)) throw new Error('Verse lookups and API keys must stay server-side');
 if (!verseApi.includes("verses.includes(ref.start)")) throw new Error('NLT clamps past-the-end verses to the chapter end; that must be refused');
 if (!verseApi.includes('.psa-title') || !verseApi.includes('.tn')) throw new Error('NLT headings and footnotes must be stripped');
-if (!verseApi.includes('fums.api.bible')) throw new Error('NIV via API.Bible must report FUMS views');
 if (!html.includes('id="meditation-attribution"') || !script.includes('entry.link')) throw new Error('Translation attribution (and the ESV link) is not rendered');
 if (!script.includes('if(!verse.text) return {};') || !script.includes('endVerse:range.end,texts:{}')) throw new Error('A new verse must not inherit a phantom WEB cache entry');
 if (!script.includes('function switchMeditationTranslation(') || !script.includes('function verseTexts(')) throw new Error('Switching translations on a saved verse is missing');
