@@ -124,6 +124,13 @@ if (!html.includes('id="meditation-attribution"') || !script.includes('entry.lin
 if (!script.includes('if(!verse.text) return {};') || !script.includes('endVerse:range.end,texts:{}')) throw new Error('A new verse must not inherit a phantom WEB cache entry');
 if (!script.includes('function switchMeditationTranslation(') || !script.includes('function verseTexts(')) throw new Error('Switching translations on a saved verse is missing');
 
+if (!html.includes('id="cross-moment"') || !/<svg viewBox="0 0 100 140"[^>]*>\s*<rect[^>]*\/>\s*<rect[^>]*\/>\s*<\/svg>/.test(html)) throw new Error('The completion cross is missing');
+// the script queries #cross-moment at load, so the element must exist before the script runs
+if (html.indexOf('id="cross-moment"') < html.indexOf('<body') || html.indexOf('id="cross-moment"') > html.indexOf('<script src="marriage-items.js">')) throw new Error('#cross-moment must come before the script, or $(\'cross-moment\') is null at load and the whole script aborts');
+if (!script.includes('if(complete&&powerComplete===false) showCross()')) throw new Error('The cross must fire on the transition to all five, not on every render');
+if (!/rollState\(\);\s*mirrorToday\(\);\s*powerComplete=allPowerDone\(\);/.test(script)) throw new Error('A cloud pull must record completion without showing the cross');
+if (!script.includes("crossTimer=setTimeout(hideCross,") || !script.includes("$('cross-moment').addEventListener('click',hideCross)")) throw new Error('The cross must dismiss on its own and on a tap');
+
 const seed = fs.readFileSync(new URL('../marriage-items.js', import.meta.url), 'utf8');
 const items = new Function(seed + '; return MARRIAGE_ITEMS;')();
 if (items.length !== 35) throw new Error(`Gottman seed should hold 35 items, found ${items.length}`);

@@ -342,6 +342,14 @@
   .taskbar .spacer{flex:1}
   .taskbar .host{font-family:var(--mono); font-size:11px; color:var(--dim)}
 
+  /* All five done: one cross, as big as the screen allows. */
+  .cross-moment{position:fixed; inset:0; z-index:1000; display:grid; place-items:center; cursor:pointer;
+        background:var(--desk); background:color-mix(in srgb, var(--desk) 94%, transparent);
+        opacity:0; transition:opacity .5s ease}
+  .cross-moment.show{opacity:1}
+  .cross-moment svg{height:min(84vh, 126vw); width:auto; fill:var(--gold-ink);
+        transform:scale(.88); transition:transform 1.1s cubic-bezier(.2,.7,.2,1)}
+  .cross-moment.show svg{transform:scale(1)}
   @media (prefers-reduced-motion:reduce){ *{transition:none !important; animation:none !important} }
 
   @media(max-width:1060px){
@@ -631,6 +639,9 @@
   <span class="sync-status" id="sync-status" data-state="local"><span class="sync-dot" aria-hidden="true"></span><span id="sync-label">Local only</span></span>
 </footer>
 
+<div class="cross-moment hidden" id="cross-moment" role="img" aria-label="A cross">
+  <svg viewBox="0 0 100 140" aria-hidden="true"><rect x="41" y="0" width="18" height="140"/><rect x="8" y="34" width="84" height="18"/></svg>
+</div>
 <script src="marriage-items.js"></script>
 <script>
 const LETTERS=[
@@ -950,6 +961,7 @@ function applyCloud(cloud,preserveLocal){
   }
   rollState();
   mirrorToday();
+  powerComplete=allPowerDone();
   store.set(KEY,state); persistSyncInfo(cloud.updatedAt); buildChapters(); renderDashboard();
   setSyncBlocked('');
   setSyncStatus('synced',relativeSyncTime(cloud.updatedAt));
@@ -2026,6 +2038,8 @@ function saveSyncKey(){
 $('sync-key-save').addEventListener('click',saveSyncKey);
 $('sync-key').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); saveSyncKey()}});
 $('sync-init').addEventListener('click',initializeCloud);
+$('cross-moment').addEventListener('click',hideCross);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') hideCross() });
 $('sync-keep').addEventListener('click',()=>{
   if(!pendingConflict) return;
   const cloud=pendingConflict.cloud; pendingConflict=null;
@@ -2095,8 +2109,34 @@ function renderDashboard(){
   renderMeter(); renderPray(); renderRuns(); renderIdeas(); renderRead(); renderMeditationVerse(); renderDrafts();
   renderTimer(); renderCards(); renderWeek(); renderMarriage();
 }
+// The cross shows when the fifth letter lands, not whenever all five happen to be
+// true, so reloading a finished day does not replay it. applyCloud records the
+// state without showing it, so a letter arriving from the other device is not a moment.
+let powerComplete=null;
+const allPowerDone=()=>LETTERS.every(l=>state.done[l.k]);
+let crossTimer=null;
+function showCross(){
+  const el=$('cross-moment');
+  clearTimeout(crossTimer);
+  el.classList.remove('hidden');
+  // read layout once so the browser commits the hidden state before the fade starts;
+  // requestAnimationFrame would stall in a background tab and leave it invisible
+  void el.offsetWidth;
+  el.classList.add('show');
+  crossTimer=setTimeout(hideCross,4000);
+}
+function hideCross(){
+  const el=$('cross-moment');
+  if(el.classList.contains('hidden')) return;
+  clearTimeout(crossTimer);
+  el.classList.remove('show');
+  crossTimer=setTimeout(()=>el.classList.add('hidden'),500);
+}
 function sync(){
   settle(); renderDashboard(); save();
+  const complete=allPowerDone();
+  if(complete&&powerComplete===false) showCross();
+  powerComplete=complete;
 }
 
 buildBooks(); buildChapters();

@@ -60,6 +60,8 @@ The **POWER letters** at the top of the Today window are keys. Tap one to mark a
 
 Completion fires once, on the transition (first prayer, tenth observation, timer hitting zero). Undo sets it back to false and it stays false; it will not silently re-complete itself just because a prayer is still ticked.
 
+When the fifth letter lands, a cross fills the screen for about four seconds, gold on a nearly opaque wash of the desk color, so the finished day ends looking at what it was for. A tap or Escape clears it early. It fires on the change from four to five, not on whether all five happen to be true, so reloading a finished day does not replay it, and un-checking a letter and checking it again is a fresh landing that does. A letter that arrives from the other device through sync records the day as complete without showing the cross there; the moment belongs to the device where you finished.
+
 Two rollovers, on different clocks. At the first load after local midnight, all five POWER completion letters reset for the new day; entered module data and the weekly exercise totals are preserved, because a day starting fresh is not the same as a week starting fresh. At the first load in a new week, Monday, the run and lift counts clear. Either one fires on its own, so a dashboard left open across Sunday midnight still rolls the week without needing the day to change. An open dashboard also checks for a date change when it becomes visible and once per minute. **Clear day** provides a confirmed manual reset for prayers, ideas, writing, its timer, and POWER completion while preserving weekly exercise totals, Bible progress, and saved drafts.
 
 ---
