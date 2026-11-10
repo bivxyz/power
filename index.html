@@ -124,6 +124,15 @@
 
   /* checkboxes (prayer times, runs, lifts) */
   .taps{display:flex; gap:8px; margin-top:14px; flex-wrap:wrap}
+  .day-nav{display:flex; align-items:center; gap:8px; margin-bottom:12px}
+  .day-step{min-width:34px; padding-left:0; padding-right:0; font-size:17px; line-height:1}
+  .day-label{font:600 13px/1.4 var(--sans); padding:0 4px}
+  .past-rows{display:grid; margin-top:16px}
+  .past-row{display:grid; grid-template-columns:96px 1fr; align-items:center; gap:12px; padding:10px 0; border-top:1px dashed var(--line)}
+  .past-k{font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+  .past-v{font-size:14px; color:var(--muted)}
+  .past-row .taps{margin-top:0}
+  .past-day .hint{max-width:none; text-align:left; margin-top:12px}
   .check{display:flex; align-items:center; gap:7px; padding:6px 10px 6px 7px; border:1.5px solid var(--edge); border-radius:6px;
     background:var(--win); box-shadow:0 2px 0 var(--shadow); cursor:pointer; font:500 12.5px var(--sans); color:var(--ink); position:relative; top:0}
   .check:active{top:2px; box-shadow:0 0 0 var(--shadow)}
@@ -444,6 +453,22 @@
 <div class="wbody">
 
 <div id="view-today">
+  <div class="day-nav">
+    <button class="btn sm day-step" id="day-prev" type="button" aria-label="Previous day">&lsaquo;</button>
+    <span class="day-label" id="day-label" aria-live="polite">Today</span>
+    <button class="btn sm day-step" id="day-next" type="button" aria-label="Next day">&rsaquo;</button>
+  </div>
+  <section class="past-day hidden" id="past-day">
+    <div class="meter" id="past-meter" aria-label="POWER for this day"></div>
+    <p class="hint">Fixing a day you forgot. Tap a letter, a prayer time, or a run to correct it.</p>
+    <div class="past-rows">
+      <div class="past-row"><span class="past-k">Pray</span><div class="taps" id="past-pray"></div></div>
+      <div class="past-row"><span class="past-k">Exercise</span><div class="taps" id="past-exercise"></div></div>
+      <div class="past-row"><span class="past-k">Observe</span><span class="past-v" id="past-observe"></span></div>
+      <div class="past-row"><span class="past-k">Write</span><span class="past-v" id="past-write"></span></div>
+      <div class="past-row"><span class="past-k">Read</span><span class="past-v" id="past-read"></span></div>
+    </div>
+  </section>
   <div class="meter-row">
     <div class="meter" id="meter" aria-label="POWER completion today"></div>
     <p class="hint">Tap a letter if you did it somewhere else. Tap again to bring the card back.</p>
@@ -669,12 +694,22 @@ const dayKey=d=>{
 const localDay=()=>dayKey(new Date());
 const parseDay=key=>{const [y,m,d]=key.split('-').map(Number); return new Date(y,m-1,d)};
 const shiftDay=(key,n)=>{const d=parseDay(key); d.setDate(d.getDate()+n); return dayKey(d)};
+// How far back a day can be corrected. Detail that only exists to make correction
+// possible (which prayer times, how many runs and lifts) is dropped past this.
+const BACKDATE_DAYS=3;
+const DAY_DETAIL_KEYS=['prayers','runs','lifts'];
+function pruneHistoryDetail(){
+  const oldest=shiftDay(localDay(),-BACKDATE_DAYS);
+  Object.entries(state.history).forEach(([day,row])=>{
+    if(day<oldest&&row&&DAY_DETAIL_KEYS.some(k=>k in row)) DAY_DETAIL_KEYS.forEach(k=>delete row[k]);
+  });
+}
 const weekStart=(d=new Date())=>{const m=new Date(d); m.setDate(m.getDate()-((m.getDay()+6)%7)); return dayKey(m)};
 const exerciseSessions=()=>Math.min(state.runs,WEEK_TARGETS.runs)+Math.min(state.lifts,WEEK_TARGETS.lifts);
 const weeklyExerciseComplete=()=>state.runs>=WEEK_TARGETS.runs&&state.lifts>=WEEK_TARGETS.lifts;
 const DEFAULTS={
   prayers:[false,false,false], runs:0, lifts:0, bookIdx:40, chapter:4, readChapters:[], drafts:[], ideas:[], observationsCaptured:0, writing:'', writeTitle:'', writeSeconds:0,
-  meditationVerse:null, chaptersToday:0, history:{},
+  meditationVerse:null, chaptersToday:0, runsToday:0, liftsToday:0, history:{},
   marriage:{index:0, pass:1, answeredOn:null, advanceIndex:null, advancePass:null, ideas:[], dates:[]}, marriageResponses:[],
   day:null, week:null,
   done:{p:false,o:false,w:false,e:false,r:false},
@@ -728,6 +763,9 @@ function rollDailyState(){
   state.done={...DEFAULTS.done};
   state.at={};
   state.chaptersToday=0;
+  state.runsToday=0;
+  state.liftsToday=0;
+  pruneHistoryDetail();
   // Prayer times are per day, unlike observations and writing which persist until
   // cleared. Carrying them over also left seen.p true at midnight, and settle() only
   // fires on the transition, so P could never auto-complete again from day two on.
@@ -795,7 +833,7 @@ function subDiff(local,base){
   return out;
 }
 
-const SYNC_FIELDS=['prayers','runs','lifts','bookIdx','chapter','ideas','observationsCaptured','writing','writeTitle','writeSeconds','meditationVerse','chaptersToday','marriage','day','week','done','seen','at'];
+const SYNC_FIELDS=['prayers','runs','lifts','bookIdx','chapter','ideas','observationsCaptured','writing','writeTitle','writeSeconds','meditationVerse','chaptersToday','runsToday','liftsToday','marriage','day','week','done','seen','at'];
 let syncKey=store.get(KEY_STORE)||'';
 let syncInfo=store.get(SYNC_KEY)||{};
 let cloudRevision=Number.isInteger(syncInfo.revision)?syncInfo.revision:0;
@@ -886,7 +924,8 @@ function hasPatch(patch){ return Object.keys(patch.changes).length||Object.keys(
 function mirrorToday(){
   if(!state.day) return;
   state.history[state.day]={...state.done,
-    ideas:state.observationsCaptured, writeSeconds:state.writeSeconds, chapters:state.chaptersToday};
+    ideas:state.observationsCaptured, writeSeconds:state.writeSeconds, chapters:state.chaptersToday,
+    prayers:[...state.prayers], runs:state.runsToday, lifts:state.liftsToday};
 }
 function save(){
   mirrorToday();
@@ -1421,6 +1460,71 @@ function renderMarriageHistory(){
 }
 function renderMarriage(){ renderMarriagePrompt(); renderMarriageDate(); renderMarriageHistory() }
 
+// Stepping back up to BACKDATE_DAYS to correct a day you forgot. Today stays owned
+// by live state, as everywhere else; only earlier rows are edited directly.
+let viewDay=null;
+const backdateWindow=()=>Array.from({length:BACKDATE_DAYS},(_,i)=>shiftDay(localDay(),-(i+1)));
+const pastViewDay=()=>viewDay&&backdateWindow().includes(viewDay)?viewDay:null;
+const editableRow=day=>state.history[day]||(state.history[day]={});
+function stepDay(delta){
+  const today=localDay(), next=shiftDay(pastViewDay()||today,delta);
+  if(next>=today) viewDay=null;
+  else if(backdateWindow().includes(next)) viewDay=next;
+  renderDayView();
+}
+function renderDayView(){
+  const day=pastViewDay();
+  if(!day) viewDay=null;
+  const today=localDay();
+  ['#view-today > .meter-row','#view-today > .grid'].forEach(sel=>document.querySelector(sel)?.classList.toggle('hidden',!!day));
+  $('past-day').classList.toggle('hidden',!day);
+  $('day-prev').disabled=(day||today)<=shiftDay(today,-BACKDATE_DAYS);
+  $('day-next').disabled=!day;
+  const d=parseDay(day||today);
+  const date=d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  const ago=!day?'today':day===shiftDay(today,-1)?'yesterday':`${Math.round((parseDay(today)-d)/864e5)} days ago`;
+  $('day-label').textContent=`${date} · ${ago}`;
+  if(!day) return;
+  const row=state.history[day]||{};
+
+  $('past-meter').innerHTML=LETTERS.map(l=>
+    `<div class="segwrap ${row[l.k]?'on':''}">
+       <button class="seg ${row[l.k]?'on':''}" data-k="${l.k}" type="button"
+         aria-pressed="${!!row[l.k]}" aria-label="${l.name}, ${date}">${l.L}</button>
+       <p class="lab">${l.name}</p>
+     </div>`).join('');
+  $('past-meter').querySelectorAll('.seg').forEach(b=>b.addEventListener('click',()=>{
+    const r=editableRow(day); r[b.dataset.k]=!r[b.dataset.k]; sync();
+  }));
+
+  // the first prayer of a day lights P, the same rule today follows
+  toggles($('past-pray'),normalizePrayers(row.prayers),PRAYER_LABELS,i=>{
+    const r=editableRow(day), before=normalizePrayers(r.prayers), after=[...before];
+    after[i]=!after[i];
+    r.prayers=after;
+    if(!before.some(Boolean)&&after.some(Boolean)) r.p=true;
+    sync();
+  });
+
+  // a run or lift lands on that day and lights its E; inside this week it also
+  // counts toward the weekly tally, which earlier weeks no longer keep
+  toggles($('past-exercise'),[(row.runs||0)>0,(row.lifts||0)>0],['Run','Lift'],i=>{
+    const kind=i===0?'runs':'lifts', r=editableRow(day), thisWeek=weekKeys().includes(day);
+    if((r[kind]||0)>0){
+      const removed=r[kind]; r[kind]=0;
+      if(thisWeek) state[kind]=Math.max(0,state[kind]-removed);
+    }else{
+      r[kind]=1; r.e=true;
+      if(thisWeek) state[kind]+=1;
+    }
+    sync();
+  });
+
+  $('past-observe').textContent=`${row.ideas||0} captured`;
+  $('past-write').textContent=`${Math.floor((row.writeSeconds||0)/60)} min`;
+  $('past-read').textContent=`${row.chapters||0} ${row.chapters===1?'chapter':'chapters'}`;
+}
+
 function renderMeter(){
   const m=$('meter');
   m.innerHTML=LETTERS.map(l=>
@@ -1470,6 +1574,8 @@ function renderPray(){
 function renderRuns(){
   const update=(kind,n)=>{
     const added=n>state[kind];
+    const todayKey=kind+'Today';
+    state[todayKey]=Math.max(0,(state[todayKey]||0)+(n-state[kind]));
     state[kind]=n;
     if(added&&!state.done.e){state.done.e=true; state.at.e=stamp()}
     sync();
@@ -2038,6 +2144,8 @@ function saveSyncKey(){
 $('sync-key-save').addEventListener('click',saveSyncKey);
 $('sync-key').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(); saveSyncKey()}});
 $('sync-init').addEventListener('click',initializeCloud);
+$('day-prev').addEventListener('click',()=>stepDay(-1));
+$('day-next').addEventListener('click',()=>stepDay(1));
 $('cross-moment').addEventListener('click',hideCross);
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') hideCross() });
 $('sync-keep').addEventListener('click',()=>{
@@ -2107,7 +2215,7 @@ applyTheme(store.get(THEME_KEY));
 
 function renderDashboard(){
   renderMeter(); renderPray(); renderRuns(); renderIdeas(); renderRead(); renderMeditationVerse(); renderDrafts();
-  renderTimer(); renderCards(); renderWeek(); renderMarriage();
+  renderTimer(); renderCards(); renderWeek(); renderMarriage(); renderDayView();
 }
 // The cross shows when the fifth letter lands, not whenever all five happen to be
 // true, so reloading a finished day does not replay it. applyCloud records the

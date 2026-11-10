@@ -20,7 +20,7 @@ if (bible.length !== 66 || chapterCount !== 1189) throw new Error(`Bible data mi
 if (!script.includes("e:()=>false") || !script.includes("if(added&&!state.done.e)")) throw new Error('Daily Exercise completion behavior is missing');
 if (!script.includes('const weeklyExerciseComplete=()=>state.runs>=WEEK_TARGETS.runs&&state.lifts>=WEEK_TARGETS.lifts')) throw new Error('Weekly Exercise completion must require 3 runs and 3 lifts');
 if (!script.includes("['Exercise',exerciseSessions(),WEEK_TARGETS.runs+WEEK_TARGETS.lifts,'',weeklyExerciseComplete()]")) throw new Error('Combined weekly Exercise target is missing');
-if (!script.includes("'meditationVerse','chaptersToday','marriage','day','week'")) throw new Error('Daily rollover or meditation verse keys are not synchronized');
+if (!script.includes("'meditationVerse','chaptersToday','runsToday','liftsToday','marriage','day','week'")) throw new Error('Daily rollover or meditation verse keys are not synchronized');
 
 if (!script.includes("timerManuallyPaused") || !script.includes("e.inputType?e.inputType.startsWith('insert')")) throw new Error('Automatic writing timer behavior is missing');
 if (!script.includes('draftChanges') || !script.includes('function saveDraft()') || !script.includes('function continueDraft(id)')) throw new Error('Draft lifecycle or synchronization behavior is missing');
@@ -33,7 +33,7 @@ if (!(writeFooter.indexOf('id="write-copy"') < writeFooter.indexOf('id="draft-sa
 if (!html.includes('id="clear-day"') || !script.includes('function clearDay()')) throw new Error('Clear day control is missing');
 if (!script.includes('state.done={...DEFAULTS.done}') || !script.includes('state.seen={...DEFAULTS.seen}')) throw new Error('Clear day completion reset is missing');
 if (!html.includes('id="meditation-find"') || !html.includes('id="meditation-verse"')) throw new Error('Meditation verse controls are missing');
-if (!script.includes("'meditationVerse','chaptersToday','marriage','day','week'") || !script.includes('async function findMeditationVerse()')) throw new Error('Meditation verse lookup or synchronization is missing');
+if (!script.includes("'meditationVerse','chaptersToday','runsToday','liftsToday','marriage','day','week'") || !script.includes('async function findMeditationVerse()')) throw new Error('Meditation verse lookup or synchronization is missing');
 const sync = fs.readFileSync(new URL('../functions/api/sync.js', import.meta.url), 'utf8');
 const middleware = fs.readFileSync(new URL('../functions/api/_middleware.js', import.meta.url), 'utf8');
 if (!sync.includes("'observationsCaptured'")) throw new Error('Observation capture count is not accepted by the sync API');
@@ -131,6 +131,15 @@ if (!script.includes('if(complete&&powerComplete===false) showCross()')) throw n
 if (!/rollState\(\);\s*mirrorToday\(\);\s*powerComplete=allPowerDone\(\);/.test(script)) throw new Error('A cloud pull must record completion without showing the cross');
 if (!script.includes("crossTimer=setTimeout(hideCross,") || !script.includes("$('cross-moment').addEventListener('click',hideCross)")) throw new Error('The cross must dismiss on its own and on a tap');
 
+// back-dating
+if (!script.includes('const BACKDATE_DAYS=3;')) throw new Error('The back-dating window should be three days');
+if (!script.includes('function pruneHistoryDetail()') || !/state\.liftsToday=0;\s*pruneHistoryDetail\(\);/.test(script)) throw new Error('Per-day detail must be pruned at the daily rollover');
+if (!script.includes('prayers:[...state.prayers], runs:state.runsToday, lifts:state.liftsToday')) throw new Error("Today's prayer times and runs must be mirrored into its history row");
+if (!script.includes("'runsToday','liftsToday'") || !sync.includes("'runsToday', 'liftsToday'")) throw new Error('runsToday/liftsToday must be synced and accepted by the server');
+if (!sync.includes("'runs', 'lifts'") || !sync.includes("key === 'prayers'")) throw new Error('The server must accept prayers, runs and lifts on a day row, or sync fails for every corrected day');
+if (!html.includes('id="day-prev"') || !html.includes('id="past-day"') || !script.includes('function renderDayView()')) throw new Error('The day stepper is missing');
+if (!script.includes('renderMarriage(); renderDayView();')) throw new Error('The day view is not in the render chain');
+
 const seed = fs.readFileSync(new URL('../marriage-items.js', import.meta.url), 'utf8');
 const items = new Function(seed + '; return MARRIAGE_ITEMS;')();
 if (items.length !== 35) throw new Error(`Gottman seed should hold 35 items, found ${items.length}`);
@@ -162,7 +171,7 @@ if (!script.includes("addEventListener('pointerdown',startIdeaDrag)") || !script
 if (/\bdragstart\b|\bdropEffect\b|\bdataTransfer\b/.test(script)) throw new Error('HTML5 drag-and-drop does not fire on touch; use pointer events');
 if (!/touch-action:\s*none/.test(html)) throw new Error('Drag handle needs touch-action:none or the phone will scroll instead of dragging');
 if (!script.includes('marriageChanges') || !sync.includes('sync_marriage')) throw new Error('Marriage responses are not synchronized');
-if (!script.includes("'chaptersToday','marriage'")) throw new Error('Marriage state is not in the sync field list');
+if (!script.includes("'liftsToday','marriage'")) throw new Error('Marriage state is not in the sync field list');
 
 const mxLogic = script.slice(script.indexOf('const MX_SLOTS='), script.indexOf('function renderMeter()'));
 const mxListeners = script.slice(script.indexOf("$('mx-save').addEventListener"), script.indexOf("document.querySelectorAll('.tab')"));

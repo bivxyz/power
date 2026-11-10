@@ -62,6 +62,16 @@ Completion fires once, on the transition (first prayer, tenth observation, timer
 
 When the fifth letter lands, a cross fills the screen for about four seconds, gold on a nearly opaque wash of the desk color, so the finished day ends looking at what it was for. A tap or Escape clears it early. It fires on the change from four to five, not on whether all five happen to be true, so reloading a finished day does not replay it, and un-checking a letter and checking it again is a fresh landing that does. A letter that arrives from the other device through sync records the day as complete without showing the cross there; the moment belongs to the device where you finished.
 
+### Correcting a day you forgot
+
+The arrows at the top of Today step back up to three days, so a run you forgot to mark yesterday can be put on yesterday. A past day shows its five letters, its three prayer times and a Run and Lift toggle, all editable, with observations, writing and reading as read-only counts. Marking a past prayer lights that day's P, the same first-prayer rule today uses. Marking a past run or lift lights that day's E, and if the day falls in the current week it also adds to the weekly tally; a day from last week corrects last week's history and leaves this week's count alone. Un-marking takes the run back off the tally but leaves E lit, as unchecking does today.
+
+Back-dating a completed set does not show the cross, which only marks finishing today.
+
+To make this possible, each day's row now keeps which prayer times were ticked and how many runs and lifts landed on it, mirrored from today as you go, so stepping back the next morning shows yesterday as it really was rather than inviting the same run to be logged twice. That detail only exists to be corrected: once a day is more than three days old it is pruned at the daily rollover, and the row keeps just its letters and counts. Days from before this change carry no prayer times, so they show unticked even where P is lit.
+
+The Week grid still lets any letter this week be flipped, which predates this and creates no extra stored detail.
+
 Two rollovers, on different clocks. At the first load after local midnight, all five POWER completion letters reset for the new day; entered module data and the weekly exercise totals are preserved, because a day starting fresh is not the same as a week starting fresh. At the first load in a new week, Monday, the run and lift counts clear. Either one fires on its own, so a dashboard left open across Sunday midnight still rolls the week without needing the day to change. An open dashboard also checks for a date change when it becomes visible and once per minute. **Clear day** provides a confirmed manual reset for prayers, ideas, writing, its timer, and POWER completion while preserving weekly exercise totals, Bible progress, and saved drafts.
 
 ---

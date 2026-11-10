@@ -1,11 +1,11 @@
 const OWNER = 'owner';
 const FIELD_NAMES = new Set([
   'prayers', 'runs', 'lifts', 'bookIdx', 'chapter', 'ideas', 'observationsCaptured', 'writing', 'writeTitle',
-  'writeSeconds', 'meditationVerse', 'chaptersToday', 'marriage', 'day', 'week', 'done', 'seen', 'at'
+  'writeSeconds', 'meditationVerse', 'chaptersToday', 'runsToday', 'liftsToday', 'marriage', 'day', 'week', 'done', 'seen', 'at'
 ]);
 const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
 const LETTER_KEYS = new Set(['p', 'o', 'w', 'e', 'r']);
-const COUNT_KEYS = new Set(['ideas', 'writeSeconds', 'chapters']);
+const COUNT_KEYS = new Set(['ideas', 'writeSeconds', 'chapters', 'runs', 'lifts']);
 
 function validResponse(r) {
   return Boolean(r) && typeof r === 'object' && !Array.isArray(r) &&
@@ -21,6 +21,8 @@ function validDayRow(row) {
   return Object.entries(row).every(([key, value]) => {
     if (LETTER_KEYS.has(key)) return typeof value === 'boolean';
     if (COUNT_KEYS.has(key)) return Number.isInteger(value) && value >= 0 && value <= 1000000;
+    // the last three days keep which prayer times were ticked, so a day can be corrected
+    if (key === 'prayers') return Array.isArray(value) && value.length === 3 && value.every(v => typeof v === 'boolean');
     return false;
   });
 }
