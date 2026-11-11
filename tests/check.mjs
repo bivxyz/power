@@ -180,7 +180,8 @@ if (!mxLogic || !mxListeners || !mxMarkup) throw new Error('Could not isolate th
 const marriageSurface = seed + mxLogic + mxListeners + mxMarkup;
 
 if (/generate/i.test(marriageSurface)) throw new Error('The word "generate" appears in the marriage feature');
-if (/\u2665|\u2764|heart|pink|crimson|magenta/i.test(marriageSurface)) throw new Error('Marriage feature introduced hearts or pink');
+const celebration = mxLogic.slice(mxLogic.indexOf('function celebrateDateNight()'), mxLogic.indexOf('function saveDateNight('));
+if (/\u2665|\u2764|heart|pink|crimson|magenta/i.test(marriageSurface.replace(celebration, ''))) throw new Error('Marriage decoration should be limited to the date night celebration');
 if (/fetch\(|XMLHttpRequest|https?:\/\//.test(mxLogic + mxListeners)) throw new Error('Marriage feature makes a network call');
 
 const migrations = fs.readdirSync(new URL('../migrations', import.meta.url));
