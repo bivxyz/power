@@ -400,8 +400,9 @@
     .bible-name{width:92px; flex-basis:92px}
   }
   @media(max-width:480px){
-    .meter{gap:7px; justify-content:space-between; width:100%}
-    .seg{width:52px; height:52px; font-size:32px}
+    .meter{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:6px; width:100%}
+    .seg{width:min(52px,100%); height:52px; font-size:32px}
+    .segwrap .lab{font-size:clamp(8px,2.3vw,9.5px); letter-spacing:.04em}
     .titlebar .ctl{display:none}
   }
 </style>
@@ -507,7 +508,7 @@
       </div>
     </article>
 
-    <article class="card c8" data-k="w">
+    <article class="card c12" data-k="w">
       <div class="card-head"><span class="title"><span class="letter" aria-hidden="true">W</span><h2>Write</h2></span><span class="timer-wrap"><span id="timer">10:00</span><button class="btn solid timer-button" id="timer-toggle" type="button" aria-label="Start timer" title="Start timer"></button><button class="btn danger sm" data-clear="w" type="button">Clear</button></span></div>
       <div class="row"><input id="write-title" type="text" placeholder="What I'm writing about today" aria-label="What I'm writing about today"></div>
       <textarea id="write-box" rows="8" placeholder="Start typing." style="margin-top:8px"></textarea>
@@ -533,7 +534,7 @@
       <div class="foot"><span id="exercise-week-status">0/6 this week &middot; 0 runs &middot; 0 lifts</span><button class="btn danger sm" data-clear="e" type="button">Clear</button></div>
     </article>
 
-    <article class="card c12" data-k="r">
+    <article class="card c8" data-k="r">
       <div class="card-head"><span class="title"><span class="letter" aria-hidden="true">R</span><h2>Read</h2></span><span class="eyebrow">One chapter a day</span></div>
       <div class="selects">
         <select id="book" aria-label="Book"></select>

@@ -25,7 +25,7 @@ if (!script.includes("'meditationVerse','chaptersToday','runsToday','liftsToday'
 if (!script.includes("timerManuallyPaused") || !script.includes("e.inputType?e.inputType.startsWith('insert')")) throw new Error('Automatic writing timer behavior is missing');
 if (!script.includes('draftChanges') || !script.includes('function saveDraft()') || !script.includes('function continueDraft(id)')) throw new Error('Draft lifecycle or synchronization behavior is missing');
 if (!html.includes('id="draft-save"') || !html.includes('id="draft-list"')) throw new Error('Draft controls are missing');
-const writeCard = html.match(/<article class="card c8" data-k="w">([\s\S]*?)<article class="card c4" data-k="e">/)?.[1] || '';
+const writeCard = html.match(/<article\b[^>]*\bdata-k="w"[^>]*>([\s\S]*?)<\/article>/)?.[1] || '';
 const writeHeader = writeCard.match(/<div class="card-head">([\s\S]*?)<\/div>/)?.[1] || '';
 const writeFooter = writeCard.match(/<div class="foot">([\s\S]*?)<\/div>/)?.[1] || '';
 if (!writeHeader.includes('data-clear="w"') || writeFooter.includes('data-clear="w"')) throw new Error('Write Clear must live in the header, not the footer');
