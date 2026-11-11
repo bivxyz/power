@@ -28,7 +28,7 @@ The app never grows a reading view, a search, or an archive. Obsidian already do
 
 **Pray** — morning, midday, night, each toggling on its own. Tapping Night marks Night, not all three; they are distinct times, not a running count. One prayer is enough to complete P for the day, because three is the target and one is still a day I prayed.
 
-**Observations** — ten is the daily completion target, but capture stays open beyond ten. Anything noticed counts, however small. Each new observation starts at the top with its 24-hour timestamp, while manual drag or keyboard ordering can still override that default. Individual controls copy an observation, send it to the Write subject, remove it with a five-second Undo, or drag it into a more useful order. The capture total remains intact when the visible list is pruned, while **Copy as .md** and daily-note export include only retained observations in their chosen order. Entries saved before the Organize rename remain compatible as untimed strings. The list still syncs in `ideas`; `observationsCaptured` independently preserves progress.
+**Observations** — two completes the day, and capture stays open for anything else you notice. The weekly goal is ten, or five days at the daily target. Each new observation starts at the top with its 24-hour timestamp, while manual drag or keyboard ordering can still override that default. Individual controls copy an observation, send it to the Write subject, remove it with a five-second Undo, or drag it into a more useful order. The capture total remains intact when the visible list is pruned, while **Copy as .md** and daily-note export include only retained observations in their chosen order. Entries saved before the Organize rename remain compatible as untimed strings. The list still syncs in `ideas`; `observationsCaptured` independently preserves progress.
 
 **Write** — ten minutes. A subject line on top, the body underneath. Typing in the body starts the timer automatically, while play/pause remains available; the subject never starts it. Clear stays beside the timer for quick access, while **Save draft** and **Download .md** sit together in the footer. A saved draft keeps its subject and lists under it. Save a thought as a timestamped draft to clear the writing box and continue it later from any synced device.
 
@@ -58,7 +58,7 @@ Finishing a section mutes its card without disabling it. Completed cards remain 
 
 The **POWER letters** at the top of the Today window are keys. Tap one to mark a discipline done if it happened away from the dashboard. Tap it again to bring the card back.
 
-Completion fires once, on the transition (first prayer, tenth observation, timer hitting zero). Undo sets it back to false and it stays false; it will not silently re-complete itself just because a prayer is still ticked.
+Completion fires once, on the transition (first prayer, second observation, timer hitting zero). Undo sets it back to false and it stays false; it will not silently re-complete itself just because a prayer is still ticked.
 
 When the fifth letter lands, a cross fills the screen for about four seconds, gold on a nearly opaque wash of the desk color, so the finished day ends looking at what it was for. A tap or Escape clears it early. It fires on the change from four to five, not on whether all five happen to be true, so reloading a finished day does not replay it, and un-checking a letter and checking it again is a fresh landing that does. A letter that arrives from the other device through sync records the day as complete without showing the cross there; the moment belongs to the device where you finished.
 
@@ -132,7 +132,7 @@ Saved state is merged over a defaults object rather than replacing it, so adding
 ---
 date: 2026-08-05
 pray: 3/3
-observations: 10/10
+observations: 2/2
 write: 10m
 exercise: 2/3
 read_next: Mark 5

@@ -493,7 +493,7 @@
     </article>
 
     <article class="card c8" data-k="o">
-      <div class="card-head"><span class="title"><span class="letter" aria-hidden="true">O</span><h2>Observations</h2></span><span class="eyebrow">10 a day</span></div>
+      <div class="card-head"><span class="title"><span class="letter" aria-hidden="true">O</span><h2>Observations</h2></span><span class="eyebrow">2 a day</span></div>
       <div class="row">
         <input id="idea-input" type="text" aria-label="New observation" placeholder="What did you just notice?">
         <button class="btn solid" id="idea-add" type="button">Add</button>
@@ -701,8 +701,8 @@ const LETTERS=[
  {k:'r',L:'R',name:'Read'}
 ];
 
-const IDEA_CAP=10;
-const WEEK_TARGETS={ideas:50, writeMinutes:50, runs:3, lifts:3, chapters:7};
+const OBSERVATION_TARGET=2;
+const WEEK_TARGETS={ideas:OBSERVATION_TARGET*5, writeMinutes:50, runs:3, lifts:3, chapters:7};
 
 const BIBLE=[["Genesis",50],["Exodus",40],["Leviticus",27],["Numbers",36],["Deuteronomy",34],["Joshua",24],["Judges",21],["Ruth",4],["1 Samuel",31],["2 Samuel",24],["1 Kings",22],["2 Kings",25],["1 Chronicles",29],["2 Chronicles",36],["Ezra",10],["Nehemiah",13],["Esther",10],["Job",42],["Psalms",150],["Proverbs",31],["Ecclesiastes",12],["Song of Solomon",8],["Isaiah",66],["Jeremiah",52],["Lamentations",5],["Ezekiel",48],["Daniel",12],["Hosea",14],["Joel",3],["Amos",9],["Obadiah",1],["Jonah",4],["Micah",7],["Nahum",3],["Habakkuk",3],["Zephaniah",3],["Haggai",2],["Zechariah",14],["Malachi",4],["Matthew",28],["Mark",16],["Luke",24],["John",21],["Acts",28],["Romans",16],["1 Corinthians",16],["2 Corinthians",13],["Galatians",6],["Ephesians",6],["Philippians",4],["Colossians",4],["1 Thessalonians",5],["2 Thessalonians",3],["1 Timothy",6],["2 Timothy",4],["Titus",3],["Philemon",1],["Hebrews",13],["James",5],["1 Peter",5],["2 Peter",3],["1 John",5],["2 John",1],["3 John",1],["Jude",1],["Revelation",22]];
 
@@ -796,7 +796,7 @@ function rollDailyState(){
   state.prayers=normalizePrayers(0);
   state.seen={
     p:false,
-    o:state.observationsCaptured>=IDEA_CAP,
+    o:state.observationsCaptured>=OBSERVATION_TARGET,
     w:state.writeSeconds>=600,
     e:false,
     r:false
@@ -1098,7 +1098,7 @@ async function startCloudSync(){
 
 const natural={
   p:()=>prayerCount()>=1,
-  o:()=>state.observationsCaptured>=IDEA_CAP,
+  o:()=>state.observationsCaptured>=OBSERVATION_TARGET,
   w:()=>state.writeSeconds>=600,
   e:()=>false,
   r:()=>false
@@ -1792,7 +1792,7 @@ $('obs-undo-btn').addEventListener('click',undoObservationRemoval);
 function renderIdeas(){
   const n=state.ideas.length;
   const captured=state.observationsCaptured;
-  $('idea-pips').innerHTML=Array.from({length:IDEA_CAP},(_,i)=>`<span class="pip ${i<captured?'on':''}"></span>`).join('');
+  $('idea-pips').innerHTML=Array.from({length:OBSERVATION_TARGET},(_,i)=>`<span class="pip ${i<captured?'on':''}"></span>`).join('');
   $('idea-list').innerHTML=state.ideas.map((o,i)=>
     `<li class="obs-row" data-obs-index="${i}">
       <button class="obs-grip" type="button" data-obs-grip="${i}" aria-label="Move observation ${i+1}; use arrow keys or drag" title="Drag to reorder">⠿</button>
@@ -2199,7 +2199,7 @@ function renderCards(){
 $('export').addEventListener('click',()=>{
   const d=new Date().toISOString().slice(0,10);
   const title=state.writeTitle.trim();
-  const md=['---',`date: ${d}`,`pray: ${prayerCount()}/3`,`observations: ${state.observationsCaptured}/${IDEA_CAP}`,
+  const md=['---',`date: ${d}`,`pray: ${prayerCount()}/3`,`observations: ${state.observationsCaptured}/${OBSERVATION_TARGET}`,
     `write: ${Math.floor(state.writeSeconds/60)}m`,`runs: ${state.runs}/3`,`lifts: ${state.lifts}/3`,
     `read_next: ${BIBLE[state.bookIdx][0]} ${state.chapter}`,
     `power: ${LETTERS.filter(l=>state.done[l.k]).map(l=>l.L).join('')||'none'}`,
