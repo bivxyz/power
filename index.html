@@ -786,7 +786,6 @@ function rollDailyState(){
   if(state.day===today) return false;
   resetDailyFields(state,today);
   pruneHistoryDetail();
-    r:false
   return true;
 }
 function resetDailyFields(snapshot,day){
