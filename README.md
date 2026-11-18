@@ -72,7 +72,7 @@ To make this possible, each day's row now keeps which prayer times were ticked a
 
 The Week grid still lets any letter this week be flipped, which predates this and creates no extra stored detail.
 
-Two rollovers, on different clocks. At the first load after local midnight, all five POWER completion letters reset for the new day; entered module data and the weekly exercise totals are preserved, because a day starting fresh is not the same as a week starting fresh. At the first load in a new week, Monday, the run and lift counts clear. Either one fires on its own, so a dashboard left open across Sunday midnight still rolls the week without needing the day to change. An open dashboard also checks for a date change when it becomes visible and once per minute. **Clear day** provides a confirmed manual reset for prayers, ideas, writing, its timer, and POWER completion while preserving weekly exercise totals, Bible progress, and saved drafts.
+At local midnight, POWER completion, prayer taps, observations, writing timer progress, and today's chapter and exercise counts reset. Current writing and its subject, saved drafts, Bible progress, the meditation verse, and weekly exercise totals carry forward. Run and lift totals reset on Monday. An open dashboard checks the date when it becomes visible and once per minute. Sync compares daily fields within the same date, so yesterday's completion can't carry into today's checklist. **Clear day** provides a confirmed manual reset that also clears current writing.
 
 ---
 

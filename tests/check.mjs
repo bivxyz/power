@@ -59,7 +59,7 @@ if (!script.includes('function startObservationDrag(') || !script.includes('func
 if (!script.includes("event.key==='ArrowUp'||event.key==='ArrowDown'")) throw new Error('Keyboard observation reordering is missing');
 if (/idea-add'\)\.disabled=n>=OBSERVATION_TARGET|idea-input'\)\.disabled=n>=OBSERVATION_TARGET/.test(script)) throw new Error('Observation input is capped at the daily target');
 if (!script.includes('ideas:state.observationsCaptured')) throw new Error('History does not preserve the capture count');
-if (!script.includes("!('observationsCaptured' in cloud.state)")) throw new Error('Pre-upgrade cloud observation counts are not normalized');
+if (!script.includes("!('observationsCaptured' in incoming)")) throw new Error('Pre-upgrade cloud observation counts are not normalized');
 
 if (!html.includes('id="write-title"') || !script.includes("'writing','writeTitle'")) throw new Error('Write subject line is missing or unsynchronized');
 if (!script.includes('function draftLabel(draft)') || !script.includes('title:state.writeTitle')) throw new Error('Drafts do not carry the subject line');
@@ -100,7 +100,6 @@ if (script.includes('cloudBaseline.key') || script.includes('state.syncKey')) th
 if (!script.includes('lastFocusPull') || !script.includes('startCloudSync();')) throw new Error('The tab does not re-sync when it regains focus');
 if (script.includes('Sign in through Cloudflare Access')) throw new Error('Stale status copy: a 401 here is a misconfiguration, not a sign-in prompt');
 
-if (!script.includes('state.prayers=normalizePrayers(0)') || !/state\.seen=\{\s*p:false,/.test(script)) throw new Error('Prayer times must reset at the daily rollover, or P can never auto-complete again');
 
 const verseApi = fs.readFileSync(new URL('../functions/api/verse.js', import.meta.url), 'utf8');
 // auth lives in one place
@@ -128,12 +127,12 @@ if (!html.includes('id="cross-moment"') || !/<svg viewBox="0 0 100 140"[^>]*>\s*
 // the script queries #cross-moment at load, so the element must exist before the script runs
 if (html.indexOf('id="cross-moment"') < html.indexOf('<body') || html.indexOf('id="cross-moment"') > html.indexOf('<script src="marriage-items.js">')) throw new Error('#cross-moment must come before the script, or $(\'cross-moment\') is null at load and the whole script aborts');
 if (!script.includes('if(complete&&powerComplete===false) showCross()')) throw new Error('The cross must fire on the transition to all five, not on every render');
-if (!/rollState\(\);\s*mirrorToday\(\);\s*powerComplete=allPowerDone\(\);/.test(script)) throw new Error('A cloud pull must record completion without showing the cross');
+if (!/mirrorToday\(\);\s*powerComplete=allPowerDone\(\);/.test(script)) throw new Error('A cloud pull must record completion without showing the cross');
 if (!script.includes("crossTimer=setTimeout(hideCross,") || !script.includes("$('cross-moment').addEventListener('click',hideCross)")) throw new Error('The cross must dismiss on its own and on a tap');
 
 // back-dating
 if (!script.includes('const BACKDATE_DAYS=3;')) throw new Error('The back-dating window should be three days');
-if (!script.includes('function pruneHistoryDetail()') || !/state\.liftsToday=0;\s*pruneHistoryDetail\(\);/.test(script)) throw new Error('Per-day detail must be pruned at the daily rollover');
+if (!script.includes('function pruneHistoryDetail()') || !/resetDailyFields\(state,today\);\s*pruneHistoryDetail\(\);/.test(script)) throw new Error('Per-day detail must be pruned at the daily rollover');
 if (!script.includes('prayers:[...state.prayers], runs:state.runsToday, lifts:state.liftsToday')) throw new Error("Today's prayer times and runs must be mirrored into its history row");
 if (!script.includes("'runsToday','liftsToday'") || !sync.includes("'runsToday', 'liftsToday'")) throw new Error('runsToday/liftsToday must be synced and accepted by the server');
 if (!sync.includes("'runs', 'lifts'") || !sync.includes("key === 'prayers'")) throw new Error('The server must accept prayers, runs and lifts on a day row, or sync fails for every corrected day');

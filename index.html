@@ -784,25 +784,24 @@ function rollDailyState(){
   const today=localDay();
   if(!state.day){state.day=today; return false}
   if(state.day===today) return false;
-  state.day=today;
-  state.done={...DEFAULTS.done};
-  state.at={};
-  state.chaptersToday=0;
-  state.runsToday=0;
-  state.liftsToday=0;
+  resetDailyFields(state,today);
   pruneHistoryDetail();
-  // Prayer times are per day, unlike observations and writing which persist until
-  // cleared. Carrying them over also left seen.p true at midnight, and settle() only
-  // fires on the transition, so P could never auto-complete again from day two on.
-  state.prayers=normalizePrayers(0);
-  state.seen={
-    p:false,
-    o:state.observationsCaptured>=OBSERVATION_TARGET,
-    w:state.writeSeconds>=600,
-    e:false,
     r:false
-  };
   return true;
+}
+function resetDailyFields(snapshot,day){
+  Object.assign(snapshot,{
+    day, done:{...DEFAULTS.done}, seen:{...DEFAULTS.seen}, at:{},
+    prayers:normalizePrayers(0), ideas:[], observationsCaptured:0, writeSeconds:0,
+    chaptersToday:0, runsToday:0, liftsToday:0
+  });
+}
+// Daily resets are not edits to reapply over another device's work today.
+function syncDaySnapshot(snapshot,day){
+  if(snapshot.day===day) return snapshot;
+  const next={...snapshot};
+  resetDailyFields(next,day);
+  return next;
 }
 function rollWeeklyState(){
   const week=weekStart();
@@ -847,13 +846,13 @@ function mergeContainer(base,sub){
     return out;
   }
   const out={...(base||{})};
-  Object.entries(sub).forEach(([k,v])=>{ if(v===undefined) delete out[k]; else out[k]=v });
+  Object.entries(sub).forEach(([k,v])=>{ if(v===null) delete out[k]; else out[k]=v });
   return out;
 }
 function subDiff(local,base){
   const l=local||{}, b=base||{}, out={};
   new Set([...Object.keys(l),...Object.keys(b)]).forEach(k=>{
-    if(JSON.stringify(l[k])!==JSON.stringify(b[k])) out[k]=l[k];
+    if(JSON.stringify(l[k])!==JSON.stringify(b[k])) out[k]=l[k]??null;
   });
   return out;
 }
@@ -912,32 +911,32 @@ function relativeSyncTime(value){
   if(seconds<60) return `Synced ${seconds}s ago`;
   return `Synced ${Math.floor(seconds/60)}m ago`;
 }
-function diffFromBaseline(){
-  if(!cloudBaseline) return {changes:{},keyed:{},chapterChanges:{},draftChanges:{},historyChanges:{},marriageChanges:{}};
+function diffFromBaseline(baseline=cloudBaseline){
+  if(!baseline) return {changes:{},keyed:{},chapterChanges:{},draftChanges:{},historyChanges:{},marriageChanges:{}};
   const changes={}, keyed={};
   SYNC_FIELDS.forEach(key=>{
-    if(JSON.stringify(state[key])!==JSON.stringify(cloudBaseline[key])) changes[key]=clone(state[key]);
+    if(JSON.stringify(state[key])!==JSON.stringify(baseline[key])) changes[key]=clone(state[key]);
   });
   // the wire still carries whole fields; `keyed` records only the sub-keys this
   // device actually touched, so a merge can leave the other device's alone
   MERGE_FIELDS.forEach(key=>{
-    const sub=subDiff(state[key],cloudBaseline[key]);
+    const sub=subDiff(state[key],baseline[key]);
     if(Object.keys(sub).length) keyed[key]=clone(sub);
   });
-  const local=new Set(state.readChapters), base=new Set(cloudBaseline.readChapters||[]), chapterChanges={};
+  const local=new Set(state.readChapters), base=new Set(baseline.readChapters||[]), chapterChanges={};
   local.forEach(key=>{if(!base.has(key)) chapterChanges[key]=true});
   base.forEach(key=>{if(!local.has(key)) chapterChanges[key]=false});
   const localDrafts=new Map(state.drafts.map(draft=>[draft.id,draft]));
-  const baseDrafts=new Map((cloudBaseline.drafts||[]).map(draft=>[draft.id,draft]));
+  const baseDrafts=new Map((baseline.drafts||[]).map(draft=>[draft.id,draft]));
   const draftChanges={};
   localDrafts.forEach((draft,id)=>{if(!baseDrafts.has(id)) draftChanges[id]={title:draft.title||'',text:draft.text,createdAt:draft.createdAt}});
   baseDrafts.forEach((draft,id)=>{if(!localDrafts.has(id)) draftChanges[id]={deleted:true}});
-  const baseHistory=cloudBaseline.history||{}, historyChanges={};
+  const baseHistory=baseline.history||{}, historyChanges={};
   Object.keys(state.history).forEach(day=>{
     if(JSON.stringify(state.history[day])!==JSON.stringify(baseHistory[day])) historyChanges[day]=clone(state.history[day]);
   });
   const localMx=new Map(state.marriageResponses.map(r=>[r.id,r]));
-  const baseMx=new Map((cloudBaseline.marriageResponses||[]).map(r=>[r.id,r]));
+  const baseMx=new Map((baseline.marriageResponses||[]).map(r=>[r.id,r]));
   const marriageChanges={};
   localMx.forEach((r,id)=>{
     if(JSON.stringify(r)!==JSON.stringify(baseMx.get(id)))
@@ -988,15 +987,19 @@ async function apiSync(method,body){
   return data;
 }
 function applyCloud(cloud,preserveLocal){
-  const localChanges=preserveLocal&&cloudBaseline?diffFromBaseline():{changes:{},keyed:{},chapterChanges:{},draftChanges:{},historyChanges:{},marriageChanges:{}};
-  SYNC_FIELDS.forEach(key=>{if(key in cloud.state) state[key]=clone(cloud.state[key])});
+  refreshDay();
+  const today=state.day;
+  const baseline=cloudBaseline&&syncDaySnapshot(cloudBaseline,today);
+  const localChanges=diffFromBaseline(preserveLocal?baseline:null);
+  const incoming=syncDaySnapshot(cloud.state,today);
+  SYNC_FIELDS.forEach(key=>{if(key in incoming) state[key]=clone(incoming[key])});
   state.prayers=normalizePrayers(state.prayers);
   state.readChapters=Array.isArray(cloud.state.readChapters)?[...new Set(cloud.state.readChapters)]:[];
   state.drafts=Array.isArray(cloud.state.drafts)?clone(cloud.state.drafts):[];
   state.history=cloud.state.history&&typeof cloud.state.history==='object'?clone(cloud.state.history):{};
   if(!Number.isInteger(state.observationsCaptured)||state.observationsCaptured<0){
     state.observationsCaptured=state.ideas.length;
-  } else if(!('observationsCaptured' in cloud.state)){
+  } else if(!('observationsCaptured' in incoming)){
     state.observationsCaptured=Math.max(state.observationsCaptured,state.ideas.length);
   }
   state.marriageResponses=Array.isArray(cloud.state.marriageResponses)?clone(cloud.state.marriageResponses):[];
@@ -1018,12 +1021,13 @@ function applyCloud(cloud,preserveLocal){
       if(draft.deleted) drafts.delete(id); else drafts.set(id,{id,title:draft.title||'',text:draft.text,createdAt:draft.createdAt});
     });
     state.drafts=[...drafts.values()];
-    Object.entries(localChanges.historyChanges).forEach(([day,row])=>{state.history[day]=clone(row)});
+    Object.entries(localChanges.historyChanges).forEach(([day,row])=>{if(day!==today) state.history[day]=clone(row)});
     const mx=new Map(state.marriageResponses.map(r=>[r.id,r]));
     Object.entries(localChanges.marriageChanges).forEach(([id,r])=>mx.set(id,{id,...r}));
     state.marriageResponses=[...mx.values()];
   }
   rollState();
+  pruneHistoryDetail();
   mirrorToday();
   powerComplete=allPowerDone();
   store.set(KEY,state); persistSyncInfo(cloud.updatedAt); buildChapters(); renderDashboard();
@@ -1032,6 +1036,7 @@ function applyCloud(cloud,preserveLocal){
 }
 async function pushCloud(force=false){
   if(cloudInFlight||pendingConflict||!cloudInitialized) return;
+  refreshDay();
   const patch=diffFromBaseline();
   if(!hasPatch(patch)){
     if(!syncBlocked) setSyncStatus('synced',relativeSyncTime(syncInfo.updatedAt));
@@ -1045,7 +1050,12 @@ async function pushCloud(force=false){
     if(hasPatch(diffFromBaseline())) scheduleCloudSync();
   }catch(error){
     if(error.status===409&&error.data.current){
-      const longConflict=(error.data.conflicts||[]).some(key=>key==='field:writing'||key==='field:ideas');
+      const baselineIdeas=syncDaySnapshot(cloudBaseline||{},state.day).ideas;
+      const cloudState=error.data.current.state;
+      const ideasChanged=cloudState.day===state.day&&
+        JSON.stringify(state.ideas)!==JSON.stringify(baselineIdeas)&&
+        JSON.stringify(cloudState.ideas)!==JSON.stringify(baselineIdeas);
+      const longConflict=(error.data.conflicts||[]).some(key=>key==='field:writing'||(key==='field:ideas'&&ideasChanged));
       if(longConflict){
         pendingConflict={cloud:error.data.current};
         $('sync-conflict').classList.remove('hidden');
@@ -1119,8 +1129,6 @@ function toggle(k){
   else { state.done[k]=true; state.seen[k]=natural[k](); state.at[k]=stamp() }
   sync();
 }
-
-$('today-label').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
 
 function weekKeys(){
   const start=weekStart();
@@ -1557,6 +1565,7 @@ function renderDayView(){
   const day=pastViewDay();
   if(!day) viewDay=null;
   const today=localDay();
+  $('today-label').textContent=parseDay(today).toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
   ['#view-today > .meter-row','#view-today > .grid'].forEach(sel=>document.querySelector(sel)?.classList.toggle('hidden',!!day));
   $('past-day').classList.toggle('hidden',!day);
   $('day-prev').disabled=(day||today)<=shiftDay(today,-BACKDATE_DAYS);
@@ -1864,6 +1873,7 @@ function stopTimer(manual=false){
 function startTimer(){
   if(ticking||state.writeSeconds>=600) return;
   ticking=setInterval(()=>{
+    if(state.day!==localDay()){ refreshDay(); return }
     state.writeSeconds++;
     if(state.writeSeconds>=600){ stopTimer(false); sync(); return }
     renderTimer(); save();
@@ -2324,6 +2334,18 @@ function sync(){
   powerComplete=complete;
 }
 
+function refreshDay(){
+  const previous=state.day;
+  if(!rollState()) return;
+  if(state.day!==previous){
+    stopTimer();
+    timerManuallyPaused=false;
+    dismissObservationUndo();
+  }
+  renderDashboard();
+  save();
+}
+
 buildBooks(); buildChapters();
 $('meditation-book').value=state.bookIdx;
 $('meditation-chapter').value=state.chapter;
@@ -2332,13 +2354,11 @@ $('write-title').value=state.writeTitle;
 $('word-count').textContent=state.writing.trim()?state.writing.trim().split(/\s+/).length:0;
 sync();
 startCloudSync();
-setInterval(()=>{
-  if(rollState()){renderDashboard(); save()}
-},60000);
+setInterval(refreshDay,60000);
 let lastFocusPull=0;
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden) return;
-  if(rollState()){renderDashboard(); save()}
+  refreshDay();
   // coming back to an open tab should show what the other device did
   if(cloudInitialized&&Date.now()-lastFocusPull>15000){
     lastFocusPull=Date.now();
